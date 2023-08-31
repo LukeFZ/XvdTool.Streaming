@@ -150,6 +150,10 @@ internal sealed class InfoCommand : XvdCommand<InfoCommand.Settings>
         [Description("File path to save the output into.")]
         [CommandOption("-o|--output")]
         public string? OutputPath { get; init; }
+
+        [Description("If all files should be printed.\nIf unset, only the first 4096 files will be printed.")]
+        [CommandOption(("-a|--show-all-files"))]
+        public bool ShowAllFiles { get; set; }
     }
 
     public override int Execute(CommandContext context, Settings settings)
@@ -160,7 +164,7 @@ internal sealed class InfoCommand : XvdCommand<InfoCommand.Settings>
 
         using (XvdFile)
         {
-            var infoOutput = XvdFile.PrintInfo();
+            var infoOutput = XvdFile.PrintInfo(settings.ShowAllFiles);
             if (settings.OutputPath != null)
             {
                 var directory = Path.GetDirectoryName(settings.OutputPath);
@@ -185,8 +189,12 @@ internal sealed class ExtractCommand : CryptoCommand<ExtractCommand.Settings>
         public string? OutputDirectory { get; init; }
 
         [Description("List of regions to skip downloading. Defaults to none.")]
-        [CommandOption("-r|--skip-region")]
-        public uint[]? SkippedRegions { get; init; }
+        [CommandOption("-b|--skip-region")]
+        public uint[]? SkipRegions { get; init; }
+
+        [Description("List of regions to download. Defaults to all.")]
+        [CommandOption("-w|--download-region")]
+        public uint[]? DownloadRegions { get; init; }
 
         [Description("Skips performing hash verification on the pages prior to decryption.\nMassively improves performance at the cost of integrity.\nOnly use this if you know the file is not corrupt!")]
         [CommandOption("-n|--no-hash-check")]
@@ -210,12 +218,20 @@ internal sealed class ExtractCommand : CryptoCommand<ExtractCommand.Settings>
 
         using (XvdFile)
         {
-            XvdFile.ExtractFiles(outputPath, keyEntry, settings.SkipHashCheck, settings.SkippedRegions);
+            XvdFile.ExtractFiles(outputPath, keyEntry, settings.SkipHashCheck, settings.SkipRegions, settings.DownloadRegions);
         }
 
         ConsoleLogger.WriteInfoLine("[green bold]Successfully[/] extracted files.");
 
         return 0;
+    }
+
+    public override ValidationResult Validate(CommandContext context, Settings settings)
+    {
+        if (settings is {DownloadRegions: not null, SkipRegions: not null})
+            return ValidationResult.Error("'--skip-region' and '--download-region' cannot be used together.");
+
+        return ValidationResult.Success();
     }
 }
 

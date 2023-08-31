@@ -302,7 +302,7 @@ public partial class StreamedXvdFile : IDisposable
         return LocalVerifyDataHashes();
     }
 
-    public void ExtractFiles(string outputPath, in KeyEntry key, bool skipHashCheck = false, uint[]? skippedRegionList = null)
+    public void ExtractFiles(string outputPath, in KeyEntry key, bool skipHashCheck = false, uint[]? skippedRegionList = null, uint[]? downloadRegionList = null)
     {
         if (!_hasXvcInfo)
         {
@@ -340,12 +340,24 @@ public partial class StreamedXvdFile : IDisposable
 
         var firstSegmentOffset = XvdMath.PageNumberToOffset(_xvcUpdateSegments[0].PageNum);
 
-        var extractableRegionList =
-            _xvcRegions
-            .Where(region => 
-                (skippedRegionList == null || !skippedRegionList.Contains((uint)region.Id)) 
+        XvcRegionHeader[] extractableRegionList;
+
+        if (downloadRegionList != null)
+        {
+            extractableRegionList = _xvcRegions
+                .Where(region => downloadRegionList.Contains((uint)region.Id)
                 && (region.FirstSegmentIndex != 0 || firstSegmentOffset == region.Offset))
-            .ToArray();
+                .ToArray();
+        }
+        else
+        {
+            extractableRegionList =
+                _xvcRegions
+                    .Where(region =>
+                        (skippedRegionList == null || !skippedRegionList.Contains((uint)region.Id))
+                        && (region.FirstSegmentIndex != 0 || firstSegmentOffset == region.Offset))
+                    .ToArray();
+        }
 
         // Fancy console version
         AnsiConsole.Progress()
@@ -553,7 +565,7 @@ public partial class StreamedXvdFile : IDisposable
         }
     }
 
-    public string PrintInfo()
+    public string PrintInfo(bool showAllFiles = false)
     {
         AnsiConsole.Record();
 
@@ -665,6 +677,7 @@ public partial class StreamedXvdFile : IDisposable
                     .AddColumns(
                         new TableColumn("Offset"),
                         new TableColumn("Size"),
+                        new TableColumn("Size in Bytes"),
                         new TableColumn("File Path")
                     )
                     .RoundedBorder()
@@ -675,6 +688,7 @@ public partial class StreamedXvdFile : IDisposable
                     packageFilesTable.AddRow(
                         new Markup($"[green bold]0x{entry.Offset:x8}[/]"), 
                         new Markup($"[green bold]0x{entry.Size:x8}[/]"), 
+                        new Markup($"[green bold]{ToFileSize(entry.Size)}[/]"), 
                         new Markup($"[aqua underline]{entry.FilePath}[/]")
                     );
                 }
@@ -701,6 +715,7 @@ public partial class StreamedXvdFile : IDisposable
                     .AddColumns(
                         new TableColumn("Start Page"),
                         new TableColumn("File Size"),
+                        new TableColumn("Size in Bytes"),
                         new TableColumn("Hash"),
                         new TableColumn("Flags"),
                         new TableColumn("File Path")
@@ -708,7 +723,7 @@ public partial class StreamedXvdFile : IDisposable
                     .RoundedBorder()
                     .Expand();
 
-                for (int i = 0; i < Math.Min(_segments.Length, 0x1000); i++)
+                for (int i = 0; i < (showAllFiles ? _segments.Length : Math.Min(_segments.Length, 0x1000)); i++)
                 {
                     var segment = _segments[i];
                     var updateSegment = _xvcUpdateSegments[i];
@@ -716,16 +731,17 @@ public partial class StreamedXvdFile : IDisposable
                     segmentTable.AddRow(
                         new Markup($"[green]0x{updateSegment.PageNum:x8}[/]"),
                         new Markup($"[green]0x{segment.FileSize:x16}[/]"),
+                        new Markup($"[green]{ToFileSize(segment.FileSize)}[/]"),
                         new Markup($"[green]0x{updateSegment.Hash:x16}[/]"),
                         new Markup(segment.Flags != 0x0 ? $"[fuchsia]0x{(byte)segment.Flags:x2}[/]" : $"0x{segment.Flags}"),
                         new Markup($"[aqua underline]{_segmentPaths[i]}[/]")
                     );
+                }
 
-                    if (_segments.Length > 0x1000)
-                    {
-                        segmentTable.AddEmptyRow();
-                        segmentTable.AddRow(new Markup("[red bold]<Too many segment files to print>[/]"));
-                    }
+                if (!showAllFiles && _segments.Length > 0x1000)
+                {
+                    segmentTable.AddEmptyRow();
+                    segmentTable.AddRow(new Markup("[red bold]<Too many segment files to print>[/]"));
                 }
 
                 AnsiConsole.Write(segmentTable);
@@ -733,6 +749,20 @@ public partial class StreamedXvdFile : IDisposable
         }
 
         return AnsiConsole.ExportText();
+
+        string ToFileSize(ulong size)
+        {
+            if (size < 1024)
+                return $"{size} B";
+
+            if (size < 1024 * 1024)
+                return $"{Math.Round(size / 1024.0, 2)} KB";
+
+            if (size < 1024 * 1024 * 1024)
+                return $"{Math.Round(size / (1024.0 * 1024.0), 2)} MB";
+
+            return $"{Math.Round(size / (1024.0 * 1024.0 * 1024.0), 2)} KB";
+        }
     }
 
     public void Dispose()
