@@ -38,7 +38,7 @@ public partial class StreamedXvdFile : IDisposable
     private string[] _segmentPaths;
 
     private bool _hasPartitionFiles;
-    private (string Path, ulong Size)[] _partitionFileEntries;
+    private (string Path, ulong Size)[] _partitionFileEntries = [];
 
     // XVD header extracted infos
     private bool _isXvc;
@@ -107,7 +107,7 @@ public partial class StreamedXvdFile : IDisposable
             ParseXvcInfo();
         }
 
-        if (!_hasSegmentMetadata && _header.Type == XvdType.Fixed && OperatingSystem.IsWindows())
+        if (!_hasSegmentMetadata && _header.Type == XvdType.Fixed)
         {
             ParseNtfsPartition();
         }
@@ -240,12 +240,6 @@ public partial class StreamedXvdFile : IDisposable
 
     private void ParseNtfsPartition()
     {
-        if (!OperatingSystem.IsWindows())
-        {
-            ConsoleLogger.WriteInfoLine("Skipping GPT/MBR partition parsing due to not running on Windows.");
-            return;
-        }
-
         var driveSize = checked((long)_header.DriveSize);
 
         using var fsStream =
