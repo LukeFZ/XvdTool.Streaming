@@ -9,6 +9,7 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <PackageReference Include="DiscUtils.Ntfs" Version="0.16.13" />
     <PackageReference Include="DotNext.Unsafe" Version="4.13.1" />
     <PackageReference Include="Spectre.Console.Cli" Version="0.47.1-preview.0.11" />
   </ItemGroup>

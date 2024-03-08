@@ -118,8 +118,6 @@ public partial class StreamedXvdFile
         {
             // TODO
         }
-
-        memoryFile.Dispose();
     }
     // ReSharper restore AccessToDisposedClosure
 
@@ -155,8 +153,7 @@ public partial class StreamedXvdFile
 
             using var directAccessor = memoryFile.CreateDirectAccessor(
                 (long)(offset + mappedPageOffset * XvdFile.PAGE_SIZE),
-                (long)pageCountThisOffset * XvdFile.PAGE_SIZE,
-                MemoryMappedFileAccess.ReadWrite);
+                (long)pageCountThisOffset * XvdFile.PAGE_SIZE);
 
             for (uint i = 0; i < pageCountThisOffset; i++)
             {
@@ -195,14 +192,13 @@ public partial class StreamedXvdFile
 
         _stream.Position = hashPageOffset;
 
-        int read;
         for (ulong i = 0; i < count; i++)
         {
             if (refreshCache)
             {
                 refreshCache = false;
 
-                read = _stream.Read(pageCache);
+                var read = _stream.Read(pageCache);
                 Debug.Assert(read == pageCache.Length, "read == pageCache.Length");
             }
 
@@ -269,11 +265,11 @@ public partial class StreamedXvdFile
 
         var task = ctx.AddTask("Verifying hashes", maxValue: (long) dataBlockCount * (int) XvdFile.PAGE_SIZE);
 
-        int read;
         for (ulong i = 0; i < dataBlockCount; i++)
         {
             task.Increment(XvdFile.PAGE_SIZE);
 
+            int read;
             if (refreshCache)
             {
                 refreshCache = false;

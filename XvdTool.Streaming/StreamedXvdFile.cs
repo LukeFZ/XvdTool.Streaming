@@ -1,7 +1,9 @@
 ﻿using System.Diagnostics;
-using System.Linq;
 using System.Runtime.InteropServices;
 using System.Security.Cryptography;
+using DiscUtils;
+using DiscUtils.Ntfs;
+using DiscUtils.Partitions;
 using LibXboxOne;
 using Spectre.Console;
 using Spectre.Console.Rendering;
@@ -35,6 +37,9 @@ public partial class StreamedXvdFile : IDisposable
     private XvdSegmentMetadataSegment[] _segments;
     private string[] _segmentPaths;
 
+    private bool _hasPartitionFiles;
+    private (string Path, ulong Size)[] _partitionFileEntries;
+
     // XVD header extracted infos
     private bool _isXvc;
     private bool _dataIntegrity;
@@ -50,6 +55,8 @@ public partial class StreamedXvdFile : IDisposable
     private ulong _hashTreeOffset;
     private ulong _userDataOffset;
     private ulong _xvcInfoOffset;
+    private ulong _dynamicHeaderOffset;
+    private ulong _driveDataOffset;
 
     private const string SegmentMetadataFilename = "SegmentMetadata.bin";
 
@@ -58,16 +65,16 @@ public partial class StreamedXvdFile : IDisposable
         _stream = stream;
         _reader = new BinaryReader(stream);
 
-        _xvcRegions = Array.Empty<XvcRegionHeader>();
-        _xvcUpdateSegments = Array.Empty<XvcUpdateSegment>();
-        _xvcRegionSpecifiers = Array.Empty<XvcRegionSpecifier>();
-        _xvcRegionPresenceInfo = Array.Empty<XvcRegionPresenceInfo>();
+        _xvcRegions = [];
+        _xvcUpdateSegments = [];
+        _xvcRegionSpecifiers = [];
+        _xvcRegionPresenceInfo = [];
 
-        _userDataPackages = new Dictionary<string, XvdUserDataPackageFileEntry>();
-        _userDataPackageContents = new Dictionary<string, byte[]>();
+        _userDataPackages = [];
+        _userDataPackageContents = [];
 
-        _segments = Array.Empty<XvdSegmentMetadataSegment>();
-        _segmentPaths = Array.Empty<string>();
+        _segments = [];
+        _segmentPaths = [];
     }
 
     public static StreamedXvdFile OpenFromUrl(string url)
@@ -75,12 +82,12 @@ public partial class StreamedXvdFile : IDisposable
         return new StreamedXvdFile(HttpFileStream.Open(url));
     }
 
-    public static StreamedXvdFile OpenFromFile(string filePath)
+    public static StreamedXvdFile OpenFromFile(string filePath, bool writing = true)
     {
         if (!File.Exists(filePath))
             throw new InvalidOperationException("File does not exist");
 
-        return new StreamedXvdFile(File.Open(filePath, FileMode.Open, FileAccess.ReadWrite));
+        return new StreamedXvdFile(File.Open(filePath, FileMode.Open, writing ? FileAccess.ReadWrite : FileAccess.Read, FileShare.Read));
     }
 
     public void Parse()
@@ -99,6 +106,11 @@ public partial class StreamedXvdFile : IDisposable
         {
             ParseXvcInfo();
         }
+
+        if (!_hasSegmentMetadata && _header.Type == XvdType.Fixed && OperatingSystem.IsWindows())
+        {
+            ParseNtfsPartition();
+        }
     }
 
     private void ParseHeader()
@@ -112,14 +124,15 @@ public partial class StreamedXvdFile : IDisposable
         _resiliency = _header.VolumeFlags.HasFlag(XvdVolumeFlags.ResiliencyEnabled);
         _encrypted = !_header.VolumeFlags.HasFlag(XvdVolumeFlags.EncryptionDisabled);
 
-        _hashTreePageCount =
-            XvdMath.CalculateNumberHashPages(out _hashTreeLevels, _header.NumberOfHashedPages, _resiliency);
+        _hashTreePageCount = XvdMath.CalculateNumberHashPages(out _hashTreeLevels, _header.NumberOfHashedPages, _resiliency);
         _hashEntryLength = _encrypted ? (int)XvdFile.HASH_ENTRY_LENGTH_ENCRYPTED : (int)XvdFile.HASH_ENTRY_LENGTH;
 
         _mutableDataOffset = XvdMath.PageNumberToOffset(_header.EmbeddedXvdPageCount) + _embeddedXvdOffset;
         _hashTreeOffset = _header.MutableDataLength + _mutableDataOffset;
         _userDataOffset = (_dataIntegrity ? XvdMath.PageNumberToOffset(_hashTreePageCount) : 0) + _hashTreeOffset;
         _xvcInfoOffset = XvdMath.PageNumberToOffset(_header.UserDataPageCount) + _userDataOffset;
+        _dynamicHeaderOffset = XvdMath.PageNumberToOffset(_header.XvcInfoPageCount) + _xvcInfoOffset;
+        _driveDataOffset = XvdMath.PageNumberToOffset(_header.DynamicHeaderPageCount) + _dynamicHeaderOffset;
     }
 
     private void ParseUserData()
@@ -208,16 +221,12 @@ public partial class StreamedXvdFile : IDisposable
 
         if (_xvcInfo.Version >= 1)
         {
-            Debug.Assert(int.MaxValue > _xvcInfo.RegionCount, "int.MaxValue > _xvcInfo.RegionCount");
-            _xvcRegions = xvcInfoReader.ReadStructArray<XvcRegionHeader>((int)_xvcInfo.RegionCount);
-
-            Debug.Assert(int.MaxValue > _xvcInfo.UpdateSegmentCount, "int.MaxValue > _xvcInfo.UpdateSegmentCount");
-            _xvcUpdateSegments = xvcInfoReader.ReadStructArray<XvcUpdateSegment>((int) _xvcInfo.UpdateSegmentCount);
+            _xvcRegions = xvcInfoReader.ReadStructArray<XvcRegionHeader>(checked((int)_xvcInfo.RegionCount));
+            _xvcUpdateSegments = xvcInfoReader.ReadStructArray<XvcUpdateSegment>(checked((int)_xvcInfo.UpdateSegmentCount));
 
             if (_xvcInfo.Version >= 2)
             {
-                Debug.Assert(int.MaxValue > _xvcInfo.RegionSpecifierCount, "int.MaxValue > _xvcInfo.RegionSpecifierCount");
-                _xvcRegionSpecifiers = xvcInfoReader.ReadStructArray<XvcRegionSpecifier>((int) _xvcInfo.RegionSpecifierCount);
+                _xvcRegionSpecifiers = xvcInfoReader.ReadStructArray<XvcRegionSpecifier>(checked((int)_xvcInfo.RegionSpecifierCount));
 
                 if (_header.MutableDataPageCount > 0)
                 {
@@ -227,6 +236,76 @@ public partial class StreamedXvdFile : IDisposable
                 }
             }
         }
+    }
+
+    private void ParseNtfsPartition()
+    {
+        if (!OperatingSystem.IsWindows())
+        {
+            ConsoleLogger.WriteInfoLine("Skipping GPT/MBR partition parsing due to not running on Windows.");
+            return;
+        }
+
+        var driveSize = checked((long)_header.DriveSize);
+
+        using var fsStream =
+            new StreamedXvdFileSystemStream(
+                driveSize,
+                checked((long)_driveDataOffset),
+                0,
+                checked((long)_xvcInfoOffset),
+                _stream);
+
+        PartitionTable? partitionTable;
+
+        try
+        {
+            partitionTable =
+                new GuidPartitionTable(fsStream, Geometry.FromCapacity(driveSize, (int)XvdFile.SECTOR_SIZE));
+        }
+        catch (Exception)
+        {
+            partitionTable = null;
+        }
+
+        if (partitionTable == null)
+        {
+            try
+            {
+                partitionTable =
+                    new BiosPartitionTable(fsStream, Geometry.FromCapacity(driveSize, (int)XvdFile.SECTOR_SIZE));
+            }
+            catch (Exception)
+            {
+                partitionTable = null;
+            }
+        }
+
+        if (partitionTable == null)
+        {
+            ConsoleLogger.WriteErrLine("Failed to drive contents as either GPT or MBR.");
+            return;
+        }
+
+        var partionTable = new BiosPartitionTable(fsStream, Geometry.FromCapacity(driveSize, (int)XvdFile.SECTOR_SIZE));
+        if (partionTable.Partitions.Count == 0)
+        {
+            ConsoleLogger.WriteInfoLine("File does not contain a partition.");
+            return;
+        }
+
+        if (partionTable.Partitions.Count > 1)
+        {
+            ConsoleLogger.WriteInfoLine($"File contains [white bold]{partionTable.Partitions.Count}[/] partitions.");
+        }
+
+        using var partiton = new NtfsFileSystem(partionTable.Partitions[0].Open());
+
+        _hasPartitionFiles = true;
+        _partitionFileEntries = partiton.Root
+            .GetFiles("*.*", SearchOption.AllDirectories)
+            .Select(x => (x.FullName, (ulong)x.Length))
+            .ToArray();
     }
 
     public Guid GetKeyId()
@@ -278,7 +357,7 @@ public partial class StreamedXvdFile : IDisposable
         if (!_encrypted)
         {
             ConsoleLogger.WriteInfoLine("Skipping decryption as the file is [green bold]not encrypted[/].");
-            //return;
+            return;
         }
 
         LocalDecryptData(key, recalculateHashes);
@@ -457,7 +536,6 @@ public partial class StreamedXvdFile : IDisposable
         var currentPageNumber = 0;
         var totalPageNumber = (long) XvdMath.OffsetToPageNumber(regionLength);
 
-        int read;
         while (_segments.Length > currentSegment && totalPageNumber > currentPageNumber)
         {
             var fileSize = _segments[currentSegment].FileSize;
@@ -476,6 +554,7 @@ public partial class StreamedXvdFile : IDisposable
             {
                 var currentFileSectionLength = (int)Math.Min(remainingFileSize, XvdFile.PAGE_SIZE);
 
+                int read;
                 if (refreshHashCache)
                 {
                     _stream.Position = totalHashCacheOffset;
@@ -568,11 +647,6 @@ public partial class StreamedXvdFile : IDisposable
     public string PrintInfo(bool showAllFiles = false)
     {
         AnsiConsole.Record();
-
-        static Rows StringToRows(string text)
-        {
-            return new Rows(text.Split(Environment.NewLine).Select(x => new Text(x.Trim())));
-        }
 
         var xvdHeaderPanel = new Panel(StringToRows(_header.ToString(false)))
             .Header("XVD Header")
@@ -723,7 +797,9 @@ public partial class StreamedXvdFile : IDisposable
                     .RoundedBorder()
                     .Expand();
 
-                for (int i = 0; i < (showAllFiles ? _segments.Length : Math.Min(_segments.Length, 0x1000)); i++)
+                for (int i = 0; 
+                     i < (showAllFiles ? _segments.Length : Math.Min(_segments.Length, 0x1000)); 
+                     i++)
                 {
                     var segment = _segments[i];
                     var updateSegment = _xvcUpdateSegments[i];
@@ -741,16 +817,55 @@ public partial class StreamedXvdFile : IDisposable
                 if (!showAllFiles && _segments.Length > 0x1000)
                 {
                     segmentTable.AddEmptyRow();
-                    segmentTable.AddRow(new Markup("[red bold]<Too many segment files to print>[/]"));
+                    segmentTable.AddRow(new Markup("[red bold]<Too many files to print>[/]"));
                 }
 
                 AnsiConsole.Write(segmentTable);
             }
         }
 
+        if (_hasPartitionFiles && !_hasSegmentMetadata)
+        {
+            var fileSystemFilesTable = new Table()
+                .Title("Partition Files")
+                .AddColumns(
+                    new TableColumn("File Size"),
+                    new TableColumn("Size in Bytes"),
+                    new TableColumn("File Path")
+                )
+                .RoundedBorder()
+                .Expand();
+
+            for (int i = 0;
+                 i < (showAllFiles ? _partitionFileEntries.Length : Math.Min(_partitionFileEntries.Length, 0x1000));
+                 i++)
+            {
+                var file = _partitionFileEntries[i];
+
+                fileSystemFilesTable.AddRow(
+                    new Markup($"[green]0x{file.Size:x16}[/]"),
+                    new Markup($"[green]{ToFileSize(file.Size)}[/]"),
+                    new Markup($"[aqua underline]{file.Path}[/]")
+                );
+            }
+
+            if (!showAllFiles && _segments.Length > 0x1000)
+            {
+                fileSystemFilesTable.AddEmptyRow();
+                fileSystemFilesTable.AddRow(new Markup("[red bold]<Too many files to print>[/]"));
+            }
+
+            AnsiConsole.Write(fileSystemFilesTable);
+        }
+
         return AnsiConsole.ExportText();
 
-        string ToFileSize(ulong size)
+        static Rows StringToRows(string text)
+        {
+            return new Rows(text.Split(Environment.NewLine).Select(x => new Text(x.Trim())));
+        }
+
+        static string ToFileSize(ulong size)
         {
             if (size < 1024)
                 return $"{size} B";
@@ -769,5 +884,6 @@ public partial class StreamedXvdFile : IDisposable
     {
         _reader.Dispose();
         _stream.Dispose();
+        GC.SuppressFinalize(this);
     }
 }

@@ -61,7 +61,7 @@ internal abstract class XvdCommand<T> : Command<T> where T : XvdCommandSettings
 {
     protected StreamedXvdFile XvdFile = default!;
 
-    protected void Initialize(XvdCommandSettings settings)
+    protected void Initialize(XvdCommandSettings settings, bool requiresWriting)
     {
         Debug.Assert(settings.XvcPath != null, "settings.XvcPath != null");
 
@@ -69,7 +69,7 @@ internal abstract class XvdCommand<T> : Command<T> where T : XvdCommandSettings
 
         XvdFile = path.StartsWith("http")
             ? StreamedXvdFile.OpenFromUrl(path)
-            : StreamedXvdFile.OpenFromFile(path);
+            : StreamedXvdFile.OpenFromFile(path, requiresWriting);
 
         XvdFile.Parse();
     }
@@ -89,7 +89,7 @@ internal abstract class CryptoCommand<T> : XvdCommand<T> where T : CryptoCommand
 
     protected bool Initialize(CryptoCommandSettings settings, out KeyEntry entry)
     {
-        base.Initialize(settings);
+        base.Initialize(settings, requiresWriting: true);
 
         Debug.Assert(XvdFile != null, "XvdFile != null");
 
@@ -158,7 +158,7 @@ internal sealed class InfoCommand : XvdCommand<InfoCommand.Settings>
 
     public override int Execute(CommandContext context, Settings settings)
     {
-        Initialize(settings);
+        Initialize(settings, requiresWriting: false);
 
         Debug.Assert(XvdFile != null, "XvdFile != null");
 
@@ -241,7 +241,7 @@ internal sealed class VerifyCommand : XvdCommand<VerifyCommand.Settings>
 
     public override int Execute(CommandContext context, Settings settings)
     {
-        Initialize(settings);
+        Initialize(settings, requiresWriting: false);
 
         Debug.Assert(XvdFile != null, "XvdFile != null");
 
