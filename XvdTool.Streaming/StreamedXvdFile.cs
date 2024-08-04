@@ -870,7 +870,7 @@ public partial class StreamedXvdFile : IDisposable
             if (size < 1024 * 1024 * 1024)
                 return $"{Math.Round(size / (1024.0 * 1024.0), 2)} MB";
 
-            return $"{Math.Round(size / (1024.0 * 1024.0 * 1024.0), 2)} KB";
+            return $"{Math.Round(size / (1024.0 * 1024.0 * 1024.0), 2)} GB";
         }
     }
 
