@@ -638,6 +638,53 @@ public partial class StreamedXvdFile : IDisposable
         }
     }
 
+    public void ExtractEmbeddedXvd(string outputPath)
+    {
+        if (_header.EmbeddedXVDLength == 0)
+            throw new InvalidOperationException("XVC does not contain an embedded XVD.");
+
+        AnsiConsole.Progress()
+            .Columns(
+                new TaskDescriptionColumn(),
+                new ProgressBarColumn(),
+                new PercentageColumn(),
+                new TransferSpeedColumn(),
+                new DownloadedColumn(),
+                new RemainingTimeColumn(),
+                new SpinnerColumn())
+            .Start(ctx =>
+            {
+                var task = ctx.AddTask("Extracting embedded XVD", 
+                    autoStart: false,
+                    maxValue: _header.EmbeddedXVDLength);
+
+                using var fs = File.OpenWrite(outputPath);
+                _stream.Position = (long)_embeddedXvdOffset;
+
+                var pageCache = new byte[0x100000].AsSpan();
+                var remaining = (long)_header.EmbeddedXVDLength;
+
+                task.StartTask();
+
+                while (remaining != 0)
+                {
+                    var current = (int)Math.Min(remaining, pageCache.Length);
+                    var slice = pageCache.Slice(0, current);
+
+                    _stream.ReadExactly(slice);
+                    fs.Write(slice);
+
+                    remaining -= current;
+                    task.Increment(current);
+                }
+
+                task.StopTask();
+                ctx.Refresh();
+            });
+
+        ConsoleLogger.WriteInfoLine("Finished extracting embedded XVD!");
+    }
+
     public string PrintInfo(bool showAllFiles = false)
     {
         AnsiConsole.Record();

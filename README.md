@@ -7,8 +7,10 @@ Commands supported for both local and streamed types:
 - `info`
     - Lets you view detailed information (headers, regions, segments, files) for a given file.
 - `extract`
-    - Lets you extract and decrypted the embedded files contained within a XVC.  
+    - Lets you decrypt and extract the embedded files contained within a XVC.  
     *Note: Only supports the newer type of XVC which do not just contain a disk partition. (SegmentMetadata.bin)*
+- `extract-embedded-xvd`
+    - Lets you extract the (encrypted) embedded XVD for Xbox XVCs.
 
 Commands only supported by local files:
 - `verify`
