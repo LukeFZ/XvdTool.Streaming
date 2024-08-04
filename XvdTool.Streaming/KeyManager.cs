@@ -303,7 +303,7 @@ public struct KeyEntry
         using var fileStream = File.OpenWrite(path);
         
         var buffer = (stackalloc byte[Size]);
-        MemoryMarshal.Write(buffer, ref this);
+        MemoryMarshal.Write(buffer, in this);
 
         fileStream.Write(buffer);
     }
