@@ -146,12 +146,12 @@ public partial class StreamedXvdFile : IDisposable
         using var userDataReader = new BinaryReader(new MemoryStream(userData));
 
         _userDataHeader = userDataReader.ReadStruct<XvdUserDataHeader>();
-        _hasUserData = true;
-
-        userDataReader.BaseStream.Position = _userDataHeader.Length;
-
         if (_userDataHeader.Type == XvdUserDataType.PackageFiles)
         {
+            _hasUserData = true;
+
+            userDataReader.BaseStream.Position = _userDataHeader.Length;
+
             _userDataPackageFilesHeader = userDataReader.ReadStruct<XvdUserDataPackageFilesHeader>();
             Debug.Assert(int.MaxValue > _userDataPackageFilesHeader.FileCount, "int.MaxValue > _userDataPackageFilesHeader.FileCount");
 
