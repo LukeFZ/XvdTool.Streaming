@@ -520,7 +520,7 @@ public partial class StreamedXvdFile : IDisposable
         var hashCacheOffset = (int)(hashCacheEntry * XvdFile.HASH_ENTRY_LENGTH);
 
         // var hashCache = (stackalloc byte[0x10000]);
-         var hashCache = new byte[0x100000].AsSpan();
+        var hashCache = new byte[0x100000].AsSpan();
 
          // Buffer for calculated hash
         var calculatedHash = (stackalloc byte[SHA256.HashSizeInBytes]);

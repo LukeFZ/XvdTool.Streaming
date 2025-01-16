@@ -289,7 +289,7 @@ public partial class StreamedXvdFile
                     .Slice(currentHashPageOffset, _hashEntryLength)
                     .SequenceEqual(calculatedHash[.._hashEntryLength]))
             {
-                ConsoleLogger.WriteErrLine($"Page [bold]0x{i:x16}[i] has an [red bold]invalid[/] hash.");
+                ConsoleLogger.WriteErrLine($"Page [bold]0x{i:x16}[/] has an [red bold]invalid[/] hash.");
 
                 valid = false;
             }
