@@ -395,7 +395,7 @@ public partial class StreamedXvdFile : IDisposable
             return;
         }
 
-        AesXtsDecryptorNi cipher = default!;
+        AesXtsDecryptorNi cipher = null!;
 
         if (_encrypted)
         {
@@ -544,7 +544,7 @@ public partial class StreamedXvdFile : IDisposable
 
             var remainingFileSize = fileSize;
 
-            while (remainingFileSize > 0)
+            do // even files that are completely empty take up one page of (padding) data, so this loop needs to run at least once.
             {
                 var currentFileSectionLength = (int)Math.Min(remainingFileSize, XvdFile.PAGE_SIZE);
 
@@ -569,11 +569,11 @@ public partial class StreamedXvdFile : IDisposable
                     refreshPageCache = false;
                 }
 
-                var currentPage = pageCache.Slice(pageCacheOffset, (int) XvdFile.PAGE_SIZE);
+                var currentPage = pageCache.Slice(pageCacheOffset, (int)XvdFile.PAGE_SIZE);
 
                 if (_dataIntegrity)
                 {
-                    var currentHashEntry = hashCache.Slice(hashCacheOffset, (int) XvdFile.HASH_ENTRY_LENGTH);
+                    var currentHashEntry = hashCache.Slice(hashCacheOffset, (int)XvdFile.HASH_ENTRY_LENGTH);
 
                     if (!skipHashCheck)
                     {
@@ -593,10 +593,10 @@ public partial class StreamedXvdFile : IDisposable
                     if (shouldDecrypt)
                     {
                         MemoryMarshal.Cast<byte, uint>(tweakIv)[0] =
-                            MemoryMarshal.Cast<byte, uint>(currentHashEntry.Slice(_hashEntryLength, 4))[0];
+                            MemoryMarshal.Cast<byte, uint>(currentHashEntry.Slice(_hashEntryLength, sizeof(uint)))[0];
                     }
 
-                    hashCacheOffset += (int) XvdFile.HASH_ENTRY_LENGTH;
+                    hashCacheOffset += (int)XvdFile.HASH_ENTRY_LENGTH;
                     hashCacheEntry++;
                     if (hashCacheEntry == XvdFile.HASH_ENTRIES_IN_PAGE)
                     {
@@ -620,9 +620,9 @@ public partial class StreamedXvdFile : IDisposable
 
                 fileStream.Write(currentPage[..currentFileSectionLength]);
 
-                remainingFileSize -= (uint) currentFileSectionLength;
+                remainingFileSize -= (uint)currentFileSectionLength;
 
-                pageCacheOffset += (int) XvdFile.PAGE_SIZE;
+                pageCacheOffset += (int)XvdFile.PAGE_SIZE;
                 if (pageCacheOffset == pageCache.Length)
                 {
                     totalPageCacheOffset += pageCacheOffset;
@@ -632,7 +632,7 @@ public partial class StreamedXvdFile : IDisposable
 
                 currentPageNumber++;
                 progressTask.Increment(XvdFile.PAGE_SIZE);
-            }
+            } while (remainingFileSize > 0);
 
             currentSegment++;
         }
