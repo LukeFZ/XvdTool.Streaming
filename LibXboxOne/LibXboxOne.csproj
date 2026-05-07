@@ -1,7 +1,7 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
-    <TargetFramework>net9.0</TargetFramework>
+    <TargetFramework>net10.0</TargetFramework>
   </PropertyGroup>
   <ItemGroup>
     <Folder Include="NAND\" />
@@ -10,6 +10,7 @@
     <Folder Include="ThirdParty\" />
   </ItemGroup>
   <ItemGroup>
+    <PackageReference Include="System.Formats.Cbor" Version="10.0.7" />
     <PackageReference Include="System.IO.Packaging" Version="9.0.1" />
     <PackageReference Include="System.Data.DataSetExtensions" Version="4.6.0-preview3.19128.7" />
     <PackageReference Include="Microsoft.CSharp" Version="4.7.0" />

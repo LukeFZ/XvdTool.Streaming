@@ -277,7 +277,7 @@ public partial class StreamedXvdFile : IDisposable
 
         if (partitionTable == null)
         {
-            ConsoleLogger.WriteErrLine("Failed to drive contents as either GPT or MBR.");
+            ConsoleLogger.WriteErrLine("Failed to parse drive contents as either GPT or MBR.");
             return;
         }
 
