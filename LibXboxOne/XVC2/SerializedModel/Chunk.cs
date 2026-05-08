@@ -206,7 +206,7 @@ public sealed record Chunk(
         }
         reader.ReadEndMap();
 
-        Debug.Assert(segmentReference != null);
+        Debug.Assert(secretReference != null);
         return new Chunk(tags, languages, devices, id, length, onDemand, requiredToLaunch, keyIndex, boxLength, secretReference);
     }
 }
