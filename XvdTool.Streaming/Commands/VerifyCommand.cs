@@ -8,7 +8,7 @@ internal sealed class VerifyCommand : XvdCommand<VerifyCommand.Settings>
 {
     public sealed class Settings : XvdCommandSettings;
 
-    public override int Execute(CommandContext context, Settings settings)
+    protected override int Execute(CommandContext context, Settings settings, CancellationToken cancellationToken)
     {
         Initialize(settings, requiresWriting: false);
 
@@ -26,7 +26,7 @@ internal sealed class VerifyCommand : XvdCommand<VerifyCommand.Settings>
         return 0;
     }
 
-    public override ValidationResult Validate(CommandContext context, Settings settings)
+    protected override ValidationResult Validate(CommandContext context, Settings settings)
     {
         base.Validate(context, settings);
 

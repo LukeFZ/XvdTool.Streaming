@@ -27,7 +27,7 @@ internal sealed class ExtractCommand : CryptoCommand<ExtractCommand.Settings>
         public bool SkipHashCheck { get; init; }
     }
 
-    public override int Execute(CommandContext context, Settings settings)
+    protected override int Execute(CommandContext context, Settings settings, CancellationToken cancellationToken)
     {
         Debug.Assert(settings.OutputDirectory != null, "settings.OutputDirectory != null");
 
@@ -52,7 +52,7 @@ internal sealed class ExtractCommand : CryptoCommand<ExtractCommand.Settings>
         return 0;
     }
 
-    public override ValidationResult Validate(CommandContext context, Settings settings)
+    protected override ValidationResult Validate(CommandContext context, Settings settings)
     {
         if (settings is { DownloadRegions: not null, SkipRegions: not null })
             return ValidationResult.Error("'--skip-region' and '--download-region' cannot be used together.");
