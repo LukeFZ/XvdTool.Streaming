@@ -8,11 +8,15 @@ using File = System.IO.File;
 
 namespace LibXboxOne.XVC2;
 
-public sealed class Msixvc2File : IDisposable
+public sealed partial class Msixvc2File : IDisposable
 {
     private readonly ZipArchive _archive;
     private readonly Package _package;
-    private readonly Dictionary<int, ChunkDetails> _chunks;
+
+    private readonly Dictionary<int, Chunk> _chunks = [];
+    private readonly Dictionary<int, ChunkDetails> _chunkDetails = [];
+    private readonly Dictionary<int, ChunkDetailsSecret> _chunkSecrets = [];
+    private readonly Dictionary<string, XVC2.SerializedModel.File> _files = [];
 
 
     public Msixvc2File(Stream stream, bool leaveOpen = false)
@@ -20,14 +24,31 @@ public sealed class Msixvc2File : IDisposable
         _archive = new ZipArchive(stream, ZipArchiveMode.Read, leaveOpen);
         _package = ReadPackageMetadata();
 
-        _chunks = [];
         foreach (var chunk in _package.Chunks)
         {
-            _chunks[chunk.Id] = ReadChunkDetails(chunk);
+            _chunks[chunk.Id] = chunk;
+            _chunkDetails[chunk.Id] = ReadChunkDetails(chunk);
         }
     }
 
     public static Msixvc2File FromPath(string path) => new(File.OpenRead(path));
+
+    public void LoadFileNames()
+    {
+        foreach (var chunk in _chunks.Values)
+        {
+            var chunkSecretContent = GetSegmentContent(chunk.SecretReference, chunk.KeyIndex);
+            var reader = new CborReader(chunkSecretContent);
+            _chunkSecrets[chunk.Id] = ChunkDetailsSecret.Deserialize(reader);
+
+            for (int i = 0; i < _chunkDetails[chunk.Id].Files.Count; i++)
+            {
+                var file = _chunkDetails[chunk.Id].Files[i];
+                var fileName = _chunkSecrets[chunk.Id].Files[i].FileName;
+                _files[fileName] = file with { ChunkId = chunk.Id };
+            }
+        }
+    }
 
     private Package ReadPackageMetadata()
     {

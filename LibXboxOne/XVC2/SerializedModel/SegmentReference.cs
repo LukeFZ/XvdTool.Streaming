@@ -12,8 +12,8 @@ public sealed record SegmentReference(
     byte[]? EncryptionKey,
     byte[]? WrappedKey,
     PackagingIV? WrapIV,
-    PackagingHash? BoxHash,
-    BoxIndex? BoxIndex,
+    PackagingHash BoxHash,
+    BoxIndex BoxIndex,
     int BoxOffset,
     int BoxLength,
     bool Secondary
@@ -41,8 +41,8 @@ public sealed record SegmentReference(
                              + (Compression != 0 ? 2 : 0) 
                              + (EncryptionKey != null ? 1 : 0)
                              + (WrappedKey != null ? 1 : 0)
-                             + (BoxHash.HasValue ? 1 : 0)
-                             + (BoxIndex.HasValue ? 1 : 0)
+                             + (BoxHash != default ? 1 : 0)
+                             + (BoxIndex != default ? 1 : 0)
                              + (BoxOffset != 0 ? 1 : 0)
                              + (BoxLength != 0 ? 1 : 0)
                              + (Secondary ? 1 : 0));
@@ -76,16 +76,16 @@ public sealed record SegmentReference(
 
         // 7 is probably WrapIV? is this used?
 
-        if (BoxHash is { } boxHash)
+        if (BoxHash != default)
         {
             writer.WriteLabel(SerializedLabel.BoxHash);
-            writer.WriteHash(boxHash);
+            writer.WriteHash(BoxHash);
         }
 
-        if (BoxIndex is { } boxIndex)
+        if (BoxIndex != default)
         {
             writer.WriteLabel(SerializedLabel.BoxIndex);
-            boxIndex.Serialize(writer);
+            BoxIndex.Serialize(writer);
         }
 
         if (BoxOffset != 0)
@@ -118,8 +118,8 @@ public sealed record SegmentReference(
         byte[]? encryptionKey = default;
         byte[]? wrappedKey = default;
         PackagingIV? wrapIV = default;
-        PackagingHash? boxHash = default;
-        BoxIndex? boxIndex = default;
+        PackagingHash boxHash = default;
+        BoxIndex boxIndex = default;
         int boxOffset = default;
         int boxLength = default;
         bool secondary = default;
@@ -160,7 +160,7 @@ public sealed record SegmentReference(
                     boxHash = reader.ReadHash();
                     break;
                 case SerializedLabel.BoxIndex:
-                    boxIndex = XVC2.BoxIndex.Deserialize(reader);
+                    boxIndex = BoxIndex.Deserialize(reader);
                     break;
                 case SerializedLabel.BoxOffset:
                     boxOffset = reader.ReadInt32();
