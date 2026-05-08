@@ -16,13 +16,13 @@ public enum CborTagEx
     LogicalAny = 32871,
     LogicalAll = 32872,
     XVC2 = 1482048306,
-    XVCB = 1482048322,
-    XVCC = 1482048323,
+    XVCB = 1482048322, // Box
+    XVCC = 1482048323, // Chunk
     XVCD = 1482048324,
     XVCE = 1482048325,
     XVCF = 1482048326,
     XVCI = 1482048329,
-    XVCP = 1482048336,
+    XVCP = 1482048336, // Package
     XVCS = 1482048339,
-    XVCZ = 1482048346,
+    XVCZ = 1482048346, // Seal
 }

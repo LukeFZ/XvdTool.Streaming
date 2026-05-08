@@ -2,16 +2,16 @@
 
 namespace LibXboxOne.XVC2.SerializedModel;
 
-public sealed record Seal(int Target, PackagingHash Hash) : ISerialize
+public sealed record Seal(CborTagEx Target, PackagingHash Hash) : ISerialize
 {
     public void Serialize(CborWriter writer)
     {
-        writer.WriteSelfDescribeTag(CborTagEx.XVCS);
+        writer.WriteSelfDescribeTag(CborTagEx.XVCZ);
 
         writer.WriteStartMap(2);
         
         writer.WriteLabel(SerializedLabel.Target);
-        writer.WriteInt32(Target);
+        writer.WriteEnum(Target);
 
         writer.WriteLabel(SerializedLabel.Hash);
         writer.WriteHash(Hash);
@@ -21,10 +21,10 @@ public sealed record Seal(int Target, PackagingHash Hash) : ISerialize
 
     public static Seal Deserialize(CborReader reader)
     {
-        int target = default;
+        CborTagEx target = default;
         PackagingHash hash = default;
 
-        reader.ReadSelfDescribeTag(CborTagEx.XVCS);
+        reader.ReadSelfDescribeTag(CborTagEx.XVCZ);
 
         var count = reader.ReadStartMap();
         while (count-- != 0)
@@ -33,7 +33,7 @@ public sealed record Seal(int Target, PackagingHash Hash) : ISerialize
             switch (key)
             {
                 case SerializedLabel.Target:
-                    target = reader.ReadInt32();
+                    target = reader.ReadEnum<CborTagEx>();
                     break;
                 case SerializedLabel.Hash:
                     hash = reader.ReadHash();

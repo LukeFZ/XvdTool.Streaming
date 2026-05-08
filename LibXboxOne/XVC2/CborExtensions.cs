@@ -24,13 +24,13 @@ public static class CborExtensions
         {
             var tag = hash.Algorithm switch
             {
-                PackagingHashAlgorithm.SHA256 => 0x486C,
-                PackagingHashAlgorithm.SHA384 => 0x4851,
-                PackagingHashAlgorithm.SHA512 => 0x4850,
+                PackagingHashAlgorithm.SHA256 => CborTagEx.SHA256,
+                PackagingHashAlgorithm.SHA384 => CborTagEx.SHA384,
+                PackagingHashAlgorithm.SHA512 => CborTagEx.SHA512,
                 _ => throw new UnreachableException()
             };
 
-            writer.WriteTag((CborTag)tag);
+            writer.WriteTagEx(tag);
             writer.WriteByteString(hash.Hash);
         }
 
@@ -102,12 +102,12 @@ public static class CborExtensions
 
         public PackagingHash ReadHash()
         {
-            var tagType = reader.ReadTag();
-            var type = (int)tagType switch
+            var tagType = reader.ReadTagEx();
+            var type = tagType switch
             {
-                0x486C => PackagingHashAlgorithm.SHA256,
-                0x4851 => PackagingHashAlgorithm.SHA384,
-                0x4850 => PackagingHashAlgorithm.SHA512,
+                CborTagEx.SHA256 => PackagingHashAlgorithm.SHA256,
+                CborTagEx.SHA384 => PackagingHashAlgorithm.SHA384,
+                CborTagEx.SHA512 => PackagingHashAlgorithm.SHA512,
                 _ => throw new UnreachableException()
             };
 

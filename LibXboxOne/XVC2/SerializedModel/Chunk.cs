@@ -13,8 +13,8 @@ public sealed record Chunk(
     IPackagingSpecifier? Devices, 
     int Id,
     long Length,
-    bool? OnDemand, 
-    bool? RequiredToLaunch, 
+    bool OnDemand, 
+    bool RequiredToLaunch, 
     int KeyIndex,
     int BoxLength,
     SegmentReference SecretReference
@@ -91,18 +91,18 @@ public sealed record Chunk(
                              + (Tags != null ? 1 : 0)
                              + (Languages != null ? 1 : 0)
                              + (Devices != null ? 1 : 0)
-                             + (OnDemand.HasValue ? 1 : 0)
-                             + (RequiredToLaunch.HasValue ? 1 : 0)
+                             + (OnDemand ? 1 : 0)
+                             + (RequiredToLaunch ? 1 : 0)
                              + (KeyIndex != 0 ? 1 : 0)
                              + (BoxLength != 0 ? 1 : 0));
 
         writer.WriteLabel(SerializedLabel.Id);
         writer.WriteInt32(Id);
 
-        if (OnDemand is { } onDemand)
+        if (OnDemand)
         {
             writer.WriteLabel(SerializedLabel.OnDemand);
-            writer.WriteBoolean(onDemand);
+            writer.WriteBoolean(OnDemand);
         }
 
         if (Tags != null)
@@ -123,10 +123,10 @@ public sealed record Chunk(
             SerializeSpecifier(writer, Devices);
         }
 
-        if (RequiredToLaunch is { } requiredToLaunch)
+        if (RequiredToLaunch)
         {
             writer.WriteLabel(SerializedLabel.RequiredToLaunch);
-            writer.WriteBoolean(requiredToLaunch);
+            writer.WriteBoolean(RequiredToLaunch);
         }
 
         if (KeyIndex != 0)
@@ -155,8 +155,8 @@ public sealed record Chunk(
         IPackagingSpecifier? tags = default;
         IPackagingSpecifier? languages = default;
         IPackagingSpecifier? devices = default;
-        bool? onDemand = default;
-        bool? requiredToLaunch = default;
+        bool onDemand = default;
+        bool requiredToLaunch = default;
         int id = default;
         int keyIndex = default;
         long length = default;

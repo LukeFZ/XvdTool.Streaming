@@ -6,36 +6,36 @@ namespace LibXboxOne.XVC2.SerializedModel;
 public record struct Version(
     ushort Major, 
     ushort Minor, 
-    ushort Patch, 
     ushort Build, 
-    Guid Id, 
-    Guid? Unknown
+    ushort Revision, 
+    Guid BuildId, 
+    Guid? OriginalBuildId
 ) : ISerialize
 {
-    public override string ToString() => $"{Major}.{Minor}.{Patch}.{Build}.{Id}";
+    public override string ToString() => $"{Major}.{Minor}.{Build}.{Revision}.{BuildId}";
 
     public void Serialize(CborWriter writer)
     {
-        writer.WriteStartMap(5 + (Unknown.HasValue ? 1 : 0));
+        writer.WriteStartMap(5 + (OriginalBuildId.HasValue ? 1 : 0));
 
-        writer.WriteInt32(257);
+        writer.WriteLabel(SerializedLabel.MajorVersion);
         writer.WriteUInt32(Major);
 
-        writer.WriteInt32(258);
+        writer.WriteLabel(SerializedLabel.MinorVersion);
         writer.WriteUInt32(Minor);
 
-        writer.WriteInt32(267);
-        writer.WriteUInt32(Patch);
-
-        writer.WriteInt32(268);
+        writer.WriteLabel(SerializedLabel.Build);
         writer.WriteUInt32(Build);
 
-        writer.WriteInt32(269);
-        writer.WriteGuid(Id);
+        writer.WriteLabel(SerializedLabel.Revision);
+        writer.WriteUInt32(Revision);
 
-        if (Unknown is { } value)
+        writer.WriteLabel(SerializedLabel.BuildId);
+        writer.WriteGuid(BuildId);
+
+        if (OriginalBuildId is { } value)
         {
-            writer.WriteInt32(292);
+            writer.WriteLabel(SerializedLabel.OriginalBuildId);
             writer.WriteGuid(value);
         }
 
@@ -46,34 +46,34 @@ public record struct Version(
     {
         ushort major = default;
         ushort minor = default;
-        ushort patch = default;
         ushort build = default;
-        Guid id = default;
-        Guid? unknown = default;
+        ushort revision = default;
+        Guid buildId = default;
+        Guid? originalBuildId = default;
 
         var remaining = reader.ReadStartMap();
         while (remaining-- != 0)
         {
-            var key = reader.ReadInt32();
+            var key = reader.ReadLabel();
             switch (key)
             {
-                case 257:
+                case SerializedLabel.MajorVersion:
                     major = (ushort)reader.ReadUInt32();
                     break;
-                case 258:
+                case SerializedLabel.MinorVersion:
                     minor = (ushort)reader.ReadUInt32();
                     break;
-                case 267:
-                    patch = (ushort)reader.ReadUInt32();
-                    break;
-                case 268:
+                case SerializedLabel.Build:
                     build = (ushort)reader.ReadUInt32();
                     break;
-                case 269:
-                    id = reader.ReadGuid();
+                case SerializedLabel.Revision:
+                    revision = (ushort)reader.ReadUInt32();
                     break;
-                case 292:
-                    unknown = reader.ReadGuid();
+                case SerializedLabel.BuildId:
+                    buildId = reader.ReadGuid();
+                    break;
+                case SerializedLabel.OriginalBuildId:
+                    originalBuildId = reader.ReadGuid();
                     break;
                 default:
                     reader.AssertInvalidValue();
@@ -83,6 +83,6 @@ public record struct Version(
 
         reader.ReadEndMap();
 
-        return new Version(major, minor, patch, build, id, unknown);
+        return new Version(major, minor, build, revision, buildId, originalBuildId);
     }
 }
