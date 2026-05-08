@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.Formats.Cbor;
 using System.IO;
+using LibXboxOne.XVC2.SerializedModel;
 
 namespace LibXboxOne.XVC2;
 
@@ -11,9 +12,7 @@ public static class CborExtensions
     extension(CborWriter writer)
     {
         public void WriteTagEx(CborTagEx tag)
-        {
-            writer.WriteTag((CborTag)tag);
-        }
+            => writer.WriteTag((CborTag)tag);
 
         public void WriteSelfDescribeTag(CborTagEx tag)
         {
@@ -75,15 +74,14 @@ public static class CborExtensions
             writer.WriteEndMap();
         }
 
-        public void WriteGuid(Guid value)
-        {
-            writer.WriteTextString(value.ToString());
-        }
+        public void WriteGuid(Guid value) 
+            => writer.WriteTextString(value.ToString());
 
         public void WriteEnum<T>(T value) where T : Enum
-        {
-            writer.WriteInt32((int)(object)value);
-        }
+            => writer.WriteInt32((int)(object)value);
+
+        public void WriteLabel(SerializedLabel label)
+            => writer.WriteInt32((int)label);
     }
 
     extension(CborReader reader)
@@ -142,16 +140,18 @@ public static class CborExtensions
         }
 
         public Guid ReadGuid()
-        {
-            return Guid.Parse(reader.ReadTextString());
-        }
+            => Guid.Parse(reader.ReadTextString());
 
-        public T ReadEnum<T>() where T : Enum => (T)(object)reader.ReadInt32();
+        public T ReadEnum<T>() where T : Enum
+            => (T)(object)reader.ReadInt32();
 
         public void AssertInvalidValue()
         {
             Debug.Assert(false);
             reader.SkipValue();
         }
+
+        public SerializedLabel ReadLabel()
+            => (SerializedLabel)reader.ReadInt32();
     }
 }
