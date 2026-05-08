@@ -15,6 +15,26 @@ public partial class Msixvc2File
         _storedKeyMaterial[keyId] = keyMaterial;
     }
 
+    public void SubmitKeys(byte[]? contentKey, byte[]? versionKey)
+    {
+        if (_package.Keys.Count == 0)
+            return;
+
+        var sources = _package.Keys[0].Sources;
+
+        if (contentKey != null)
+        {
+            var contentKeySource = sources.First(x => x.SourcePurpose == PackagingKeyPurpose.Content);
+            SubmitKeyMaterial(contentKeySource.SourceKeyId, contentKey);
+        }
+
+        if (versionKey != null)
+        {
+            var versionKeySource = sources.First(x => x.SourcePurpose == PackagingKeyPurpose.Version);
+            SubmitKeyMaterial(versionKeySource.SourceKeyId, versionKey);
+        }
+    }
+
     private void DecryptContent(ReadOnlySpan<byte> encrypted, ReadOnlySpan<byte> iv, Span<byte> decrypted, int keyId,
         byte[]? encryptionKeyMaterial, byte[]? wrappedKey, PackagingIV? wrapIV, PackagingKeyPurpose purpose)
     {

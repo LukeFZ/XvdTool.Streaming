@@ -20,6 +20,8 @@ public sealed partial class Msixvc2File : IDisposable
     private readonly Dictionary<string, XVC2.SerializedModel.File> _files = [];
     private readonly Dictionary<BoxIndex, Box> _boxes = [];
 
+    private bool _loadedFileNames;
+
     public static Msixvc2File FromPath(string path) => new(File.OpenRead(path));
 
     public Msixvc2File(Stream stream, bool leaveOpen = false)
@@ -57,6 +59,8 @@ public sealed partial class Msixvc2File : IDisposable
                 _files[fileName] = file with { ChunkId = chunk.Id };
             }
         }
+
+        _loadedFileNames = true;
     }
 
     private Box ReadBoxManifest(BoxIndex index)

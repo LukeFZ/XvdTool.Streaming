@@ -43,7 +43,8 @@ public partial class Msixvc2File
         return content;
     }
 
-    public void ReadSegmentContent(SegmentReference segment, int keyId, Span<byte> content, PackagingKeyPurpose purpose)
+    public void ReadSegmentContent(SegmentReference segment, int keyId, Span<byte> content,
+        PackagingKeyPurpose purpose = PackagingKeyPurpose.Content)
     {
         var boxContent = new byte[segment.BoxLength];
 
