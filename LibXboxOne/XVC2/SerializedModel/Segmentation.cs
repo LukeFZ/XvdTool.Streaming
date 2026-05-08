@@ -4,7 +4,7 @@ using System.Formats.Cbor;
 
 namespace LibXboxOne.XVC2.SerializedModel;
 
-public sealed record Segmentation(SegmentationAlgorithm Algorithm, Dictionary<SerializedLabel, object> Labels, int Algorithm2) : ISerialize
+public sealed record Segmentation(SegmentationAlgorithm Algorithm, Dictionary<SerializedLabel, object> Options, int HashAlgorithm) : ISerialize
 {
     private static SerializedAlgorithm ToSerialized(SegmentationAlgorithm algorithm) => algorithm switch
     {
@@ -22,18 +22,18 @@ public sealed record Segmentation(SegmentationAlgorithm Algorithm, Dictionary<Se
 
     public void Serialize(CborWriter writer)
     {
-        writer.WriteStartMap(2 + (Algorithm2 != 0x301 ? 1 : 0));
+        writer.WriteStartMap(2 + (HashAlgorithm != 0x301 ? 1 : 0));
 
-        writer.WriteInt32(259);
+        writer.WriteLabel(SerializedLabel.Algorithm);
         writer.WriteEnum(ToSerialized(Algorithm));
 
-        writer.WriteInt32(266);
-        writer.WriteMap(Labels);
+        writer.WriteLabel(SerializedLabel.Options);
+        writer.WriteMap(Options);
 
-        if (Algorithm2 != 0x301)
+        if (HashAlgorithm != 0x301)
         {
-            writer.WriteInt32(291);
-            writer.WriteInt32(Algorithm2);
+            writer.WriteLabel(SerializedLabel.HashAlgorithm);
+            writer.WriteInt32(HashAlgorithm);
         }
 
         writer.WriteEndMap();
@@ -42,23 +42,23 @@ public sealed record Segmentation(SegmentationAlgorithm Algorithm, Dictionary<Se
     public static Segmentation Deserialize(CborReader reader)
     {
         SegmentationAlgorithm algorithm = 0;
-        var labels = new Dictionary<SerializedLabel, object>();
-        var algorithm2 = 0x301;
+        var options = new Dictionary<SerializedLabel, object>();
+        var hashAlgorithm = 0x301;
 
         var count = reader.ReadStartMap();
         while (count-- != 0)
         {
-            var key = reader.ReadInt32();
+            var key = reader.ReadLabel();
             switch (key)
             {
-                case 259:
+                case SerializedLabel.Algorithm:
                     algorithm = ToSegmentationAlgorithm(reader.ReadEnum<SerializedAlgorithm>());
                     break;
-                case 266:
-                    labels = reader.ReadMap<SerializedLabel>();
+                case SerializedLabel.Options:
+                    options = reader.ReadMap<SerializedLabel>();
                     break;
-                case 291:
-                    algorithm2 = reader.ReadInt32();
+                case SerializedLabel.HashAlgorithm:
+                    hashAlgorithm = reader.ReadInt32();
                     break;
                 default:
                     reader.AssertInvalidValue();
@@ -68,6 +68,6 @@ public sealed record Segmentation(SegmentationAlgorithm Algorithm, Dictionary<Se
 
         reader.ReadEndMap();
 
-        return new Segmentation(algorithm, labels, algorithm2);
+        return new Segmentation(algorithm, options, hashAlgorithm);
     }
 }

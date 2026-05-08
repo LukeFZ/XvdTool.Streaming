@@ -8,16 +8,16 @@ using LibXboxOne.XVC2.Specifiers;
 namespace LibXboxOne.XVC2.SerializedModel;
 
 public sealed record Chunk(
-    IPackagingSpecifier? Specifier0,
-    IPackagingSpecifier? Specifier1,
-    IPackagingSpecifier? Specifier2, 
+    IPackagingSpecifier? Tags,
+    IPackagingSpecifier? Languages,
+    IPackagingSpecifier? Devices, 
     int Id,
-    long Value1,
-    bool? Unknown0, 
-    bool? Unknown1, 
-    int Unknown2,
-    int Unknown3,
-    SegmentReference SegmentReference
+    long Length,
+    bool? OnDemand, 
+    bool? RequiredToLaunch, 
+    int KeyIndex,
+    int BoxLength,
+    SegmentReference SecretReference
 ) : ISerialize
 {
     private static void SerializeSpecifier(CborWriter writer, IPackagingSpecifier specifier)
@@ -88,116 +88,116 @@ public sealed record Chunk(
     public void Serialize(CborWriter writer)
     {
         writer.WriteStartMap(3 
-                             + (Specifier0 != null ? 1 : 0)
-                             + (Specifier1 != null ? 1 : 0)
-                             + (Specifier2 != null ? 1 : 0)
-                             + (Unknown0.HasValue ? 1 : 0)
-                             + (Unknown1.HasValue ? 1 : 0)
-                             + (Unknown2 != 0 ? 1 : 0)
-                             + (Unknown3 != 0 ? 1 : 0));
+                             + (Tags != null ? 1 : 0)
+                             + (Languages != null ? 1 : 0)
+                             + (Devices != null ? 1 : 0)
+                             + (OnDemand.HasValue ? 1 : 0)
+                             + (RequiredToLaunch.HasValue ? 1 : 0)
+                             + (KeyIndex != 0 ? 1 : 0)
+                             + (BoxLength != 0 ? 1 : 0));
 
-        writer.WriteInt32(24);
+        writer.WriteLabel(SerializedLabel.Id);
         writer.WriteInt32(Id);
 
-        if (Unknown0 is { } unknown0)
+        if (OnDemand is { } onDemand)
         {
-            writer.WriteInt32(36);
-            writer.WriteBoolean(unknown0);
+            writer.WriteLabel(SerializedLabel.OnDemand);
+            writer.WriteBoolean(onDemand);
         }
 
-        if (Specifier0 != null)
+        if (Tags != null)
         {
-            writer.WriteInt32(30);
-            SerializeSpecifier(writer, Specifier0);
+            writer.WriteLabel(SerializedLabel.Tags);
+            SerializeSpecifier(writer, Tags);
         }
 
-        if (Specifier1 != null)
+        if (Languages != null)
         {
-            writer.WriteInt32(31);
-            SerializeSpecifier(writer, Specifier1);
+            writer.WriteLabel(SerializedLabel.Languages);
+            SerializeSpecifier(writer, Languages);
         }
 
-        if (Specifier2 != null)
+        if (Devices != null)
         {
-            writer.WriteInt32(32);
-            SerializeSpecifier(writer, Specifier2);
+            writer.WriteLabel(SerializedLabel.Devices);
+            SerializeSpecifier(writer, Devices);
         }
 
-        if (Unknown1 is { } unknown1)
+        if (RequiredToLaunch is { } requiredToLaunch)
         {
-            writer.WriteInt32(33);
-            writer.WriteBoolean(unknown1);
+            writer.WriteLabel(SerializedLabel.RequiredToLaunch);
+            writer.WriteBoolean(requiredToLaunch);
         }
 
-        if (Unknown2 != 0)
+        if (KeyIndex != 0)
         {
-            writer.WriteInt32(34);
-            writer.WriteInt32(Unknown2);
+            writer.WriteLabel(SerializedLabel.KeyIndex);
+            writer.WriteInt32(KeyIndex);
         }
 
-        writer.WriteInt32(2);
-        writer.WriteInt64(Value1);
+        writer.WriteLabel(SerializedLabel.Length);
+        writer.WriteInt64(Length);
 
-        if (Unknown3 != 0)
+        if (BoxLength != 0)
         {
-            writer.WriteInt32(11);
-            writer.WriteInt32(Unknown3);
+            writer.WriteLabel(SerializedLabel.BoxLength);
+            writer.WriteInt32(BoxLength);
         }
 
-        writer.WriteInt32(26);
-        SegmentReference.Serialize(writer);
+        writer.WriteLabel(SerializedLabel.SecretReference);
+        SecretReference.Serialize(writer);
 
         writer.WriteEndMap();
     }
 
     public static Chunk Deserialize(CborReader reader, ref PackagingIV? initialIV)
     {
-        IPackagingSpecifier? specifier0 = default;
-        IPackagingSpecifier? specifier1 = default;
-        IPackagingSpecifier? specifier2 = default;
-        bool? unknown0 = default;
-        bool? unknown1 = default;
+        IPackagingSpecifier? tags = default;
+        IPackagingSpecifier? languages = default;
+        IPackagingSpecifier? devices = default;
+        bool? onDemand = default;
+        bool? requiredToLaunch = default;
         int id = default;
-        int unknown2 = default;
-        long value1 = default;
-        int unknown3 = default;
-        SegmentReference? segmentReference = default;
+        int keyIndex = default;
+        long length = default;
+        int boxLength = default;
+        SegmentReference? secretReference = default;
 
         var count = reader.ReadStartMap();
         while (count-- != 0)
         {
-            var key = reader.ReadInt32();
+            var key = reader.ReadLabel();
             switch (key)
             {
-                case 24:
+                case SerializedLabel.Id:
                     id = reader.ReadInt32();
                     break;
-                case 36:
-                    unknown0 = reader.ReadBoolean();
+                case SerializedLabel.OnDemand:
+                    onDemand = reader.ReadBoolean();
                     break;
-                case 30:
-                    specifier0 = DeserializeSpecifier(reader);
+                case SerializedLabel.Tags:
+                    tags = DeserializeSpecifier(reader);
                     break;
-                case 31:
-                    specifier1 = DeserializeSpecifier(reader);
+                case SerializedLabel.Languages:
+                    languages = DeserializeSpecifier(reader);
                     break;
-                case 32:
-                    specifier2 = DeserializeSpecifier(reader);
+                case SerializedLabel.Devices:
+                    devices = DeserializeSpecifier(reader);
                     break;
-                case 33:
-                    unknown1 = reader.ReadBoolean();
+                case SerializedLabel.RequiredToLaunch:
+                    requiredToLaunch = reader.ReadBoolean();
                     break;
-                case 34:
-                    unknown2 = reader.ReadInt32();
+                case SerializedLabel.KeyIndex:
+                    keyIndex = reader.ReadInt32();
                     break;
-                case 2:
-                    value1 = reader.ReadInt64();
+                case SerializedLabel.Length:
+                    length = reader.ReadInt64();
                     break;
-                case 11:
-                    unknown3 = reader.ReadInt32();
+                case SerializedLabel.BoxLength:
+                    boxLength = reader.ReadInt32();
                     break;
-                case 26:
-                    segmentReference = SegmentReference.Deserialize(reader, ref initialIV);
+                case SerializedLabel.SecretReference:
+                    secretReference = SegmentReference.Deserialize(reader, ref initialIV);
                     break;
                 default:
                     reader.AssertInvalidValue();
@@ -207,7 +207,6 @@ public sealed record Chunk(
         reader.ReadEndMap();
 
         Debug.Assert(segmentReference != null);
-        return new Chunk(specifier0, specifier1, specifier2, id, value1, unknown0, unknown1, unknown2, unknown3,
-            segmentReference);
+        return new Chunk(tags, languages, devices, id, length, onDemand, requiredToLaunch, keyIndex, boxLength, secretReference);
     }
 }

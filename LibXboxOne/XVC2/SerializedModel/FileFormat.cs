@@ -5,36 +5,38 @@ using System.Formats.Cbor;
 
 namespace LibXboxOne.XVC2.SerializedModel;
 
-public record FileFormat(List<string> Tags, int MajorVersion, int MinorVersion, int Patch) : ISerialize
+public record FileFormat(List<string> WrittenBy, int MajorVersion, int MinorVersion, int Build) : ISerialize
 {
     public System.Version Version => new(MajorVersion, MinorVersion);
 
     public override string ToString()
-        => $"{MajorVersion}.{MinorVersion}.{Patch}";
+        => $"{MajorVersion}.{MinorVersion}.{Build} ({WrittenBy})";
 
     public void Serialize(CborWriter writer)
     {
-        writer.WriteStartMap(2 + (Patch > 0 ? 1 : 0) + (Tags.Count > 0 ? 1 : 0));
+        writer.WriteStartMap(2 
+                             + (Build > 0 ? 1 : 0) 
+                             + (WrittenBy.Count > 0 ? 1 : 0));
 
-        writer.WriteInt32(257);
+        writer.WriteLabel(SerializedLabel.MajorVersion);
         writer.WriteInt32(MajorVersion);
 
-        writer.WriteInt32(258);
+        writer.WriteLabel(SerializedLabel.MinorVersion);
         writer.WriteInt32(MinorVersion);
 
-        if (Patch > 0)
+        if (Build > 0)
         {
-            writer.WriteInt32(267);
-            writer.WriteInt32(Patch);
+            writer.WriteLabel(SerializedLabel.Build);
+            writer.WriteInt32(Build);
         }
 
-        if (Tags.Count > 0)
+        if (WrittenBy.Count > 0)
         {
-            writer.WriteInt32(290);
-            writer.WriteStartArray(Tags.Count);
-            foreach (var tag in Tags)
+            writer.WriteLabel(SerializedLabel.WrittenBy);
+            writer.WriteStartArray(WrittenBy.Count);
+            foreach (var writtenBy in WrittenBy)
             {
-                writer.WriteTextString(tag);
+                writer.WriteTextString(writtenBy);
             }
             writer.WriteEndArray();
         }
@@ -46,30 +48,30 @@ public record FileFormat(List<string> Tags, int MajorVersion, int MinorVersion, 
     {
         int major = default;
         int minor = default;
-        int patch = default;
-        List<string> tags = [];
+        int build = default;
+        List<string> writtenBy = [];
 
         var remaining = reader.ReadStartMap();
         while (remaining-- != 0)
         {
-            var key = reader.ReadInt32();
+            var key = reader.ReadLabel();
             switch (key)
             {
-                case 257:
+                case SerializedLabel.MajorVersion:
                     major = reader.ReadInt32();
                     break;
-                case 258:
+                case SerializedLabel.MinorVersion:
                     minor = reader.ReadInt32();
                     break;
-                case 267:
-                    patch = reader.ReadInt32();
+                case SerializedLabel.Build:
+                    build = reader.ReadInt32();
                     break;
-                case 290:
-                    tags = [];
+                case SerializedLabel.WrittenBy:
+                    writtenBy = [];
                     var count = reader.ReadStartArray();
                     while (count-- != 0)
                     {
-                        tags.Add(reader.ReadTextString());
+                        writtenBy.Add(reader.ReadTextString());
                     }
                     reader.ReadEndArray();
                     break;
@@ -81,6 +83,6 @@ public record FileFormat(List<string> Tags, int MajorVersion, int MinorVersion, 
 
         reader.ReadEndMap();
 
-        return new FileFormat(tags, major, minor, patch);
+        return new FileFormat(writtenBy, major, minor, build);
     }
 }

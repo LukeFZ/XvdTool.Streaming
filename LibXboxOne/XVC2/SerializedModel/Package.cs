@@ -31,42 +31,42 @@ public record Package(
 
         writer.WriteStartMap(11 + (InitialIV != null ? 1 : 0) + (Keys.Count > 0 ? 1 : 0));
 
-        writer.WriteInt32(256);
+        writer.WriteLabel(SerializedLabel.FileFormat);
         FileFormat.Serialize(writer);
 
         if (InitialIV is {} initialIV)
         {
-            writer.WriteInt32(27);
+            writer.WriteLabel(SerializedLabel.InitialIV);
             initialIV.Serialize(writer);
         }
 
-        writer.WriteInt32(260);
+        writer.WriteLabel(SerializedLabel.ContentId);
         writer.WriteGuid(ContentId);
 
-        writer.WriteInt32(279);
+        writer.WriteLabel(SerializedLabel.FulfillmentContentId);
         writer.WriteGuid(FulfillmentContentId);
 
-        writer.WriteInt32(280);
+        writer.WriteLabel(SerializedLabel.ProductId);
         writer.WriteGuid(ProductId);
 
-        writer.WriteInt32(261);
+        writer.WriteLabel(SerializedLabel.Version);
         Version.Serialize(writer);
 
-        writer.WriteInt32(281);
+        writer.WriteLabel(SerializedLabel.MinimumSystemVersion);
         MinimumSystemVersion.Serialize(writer);
 
-        writer.WriteInt32(282);
+        writer.WriteLabel(SerializedLabel.StoreId);
         writer.WriteTextString(StoreId);
 
-        writer.WriteInt32(283);
+        writer.WriteLabel(SerializedLabel.SupportedPlatforms);
         writer.WriteEnum(SupportedPlatforms);
 
-        writer.WriteInt32(263);
+        writer.WriteLabel(SerializedLabel.Segmentation);
         Segmentation.Serialize(writer);
 
         if (Keys.Count > 0)
         {
-            writer.WriteInt32(262);
+            writer.WriteLabel(SerializedLabel.Keys);
             writer.WriteStartArray(Keys.Count);
             foreach (var key in Keys)
             {
@@ -75,7 +75,7 @@ public record Package(
             writer.WriteEndArray();
         }
 
-        writer.WriteInt32(264);
+        writer.WriteLabel(SerializedLabel.Boxes);
         writer.WriteStartArray(Boxes.Count);
         foreach (var box in Boxes)
         {
@@ -83,7 +83,7 @@ public record Package(
         }
         writer.WriteEndArray();
 
-        writer.WriteInt32(265);
+        writer.WriteLabel(SerializedLabel.Chunks);
         writer.WriteStartArray(Chunks.Count);
         foreach (var chunk in Chunks)
         {
@@ -115,40 +115,40 @@ public record Package(
         var count = reader.ReadStartMap();
         while (count-- != 0)
         {
-            var key = reader.ReadInt32();
+            var key = reader.ReadLabel();
             switch (key)
             {
-                case 256:
+                case SerializedLabel.FileFormat:
                     fileFormat = FileFormat.Deserialize(reader);
                     break;
-                case 27:
+                case SerializedLabel.InitialIV:
                     initialIV = PackagingIV.FromBytes(reader.ReadByteString());
                     break;
-                case 260:
+                case SerializedLabel.ContentId:
                     contentId = reader.ReadGuid();
                     break;
-                case 279:
+                case SerializedLabel.FulfillmentContentId:
                     fulfillmentContentId = reader.ReadGuid();
                     break;
-                case 280:
+                case SerializedLabel.ProductId:
                     productId = reader.ReadGuid();
                     break;
-                case 261:
+                case SerializedLabel.Version:
                     version = Version.Deserialize(reader);
                     break;
-                case 281:
+                case SerializedLabel.MinimumSystemVersion:
                     minimumSystemVersion = Version.Deserialize(reader);
                     break;
-                case 282:
+                case SerializedLabel.StoreId:
                     storeId = reader.ReadTextString();
                     break;
-                case 283:
+                case SerializedLabel.SupportedPlatforms:
                     supportedPlatforms = (SerializedPlatform)reader.ReadUInt32();
                     break;
-                case 263:
+                case SerializedLabel.Segmentation:
                     segmentation = Segmentation.Deserialize(reader);
                     break;
-                case 262:
+                case SerializedLabel.Keys:
                     var keyCount = reader.ReadStartArray();
                     keys = new List<PackageKey>(keyCount ?? 0);
                     while (keyCount-- != 0)
@@ -157,7 +157,7 @@ public record Package(
                     }
                     reader.ReadEndArray();
                     break;
-                case 264:
+                case SerializedLabel.Boxes:
                     var boxCount = reader.ReadStartArray();
                     boxes = new List<BoxReference>(boxCount ?? 0);
                     while (boxCount-- != 0)
@@ -166,7 +166,7 @@ public record Package(
                     }
                     reader.ReadEndArray();
                     break;
-                case 265:
+                case SerializedLabel.Chunks:
                     var chunkCount = reader.ReadStartArray();
                     chunks = new List<Chunk>(chunkCount ?? 0);
                     while (chunkCount-- != 0)

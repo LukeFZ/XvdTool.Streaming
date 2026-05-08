@@ -47,30 +47,30 @@ public sealed record SegmentReference(
                              + (BoxLength != 0 ? 1 : 0)
                              + (Secondary ? 1 : 0));
 
-        writer.WriteInt32(1);
+        writer.WriteLabel(SerializedLabel.Hash);
         writer.WriteHash(Hash);
 
-        writer.WriteInt32(2);
+        writer.WriteLabel(SerializedLabel.Length);
         writer.WriteInt32(Length);
 
         if (Compression != 0)
         {
-            writer.WriteInt32(3);
+            writer.WriteLabel(SerializedLabel.Compression);
             writer.WriteEnum(ToSerialized(Compression));
 
-            writer.WriteInt32(4);
+            writer.WriteLabel(SerializedLabel.CompressedLength);
             writer.WriteInt32(CompressedLength);
         }
 
         if (EncryptionKey != null)
         {
-            writer.WriteInt32(5);
+            writer.WriteLabel(SerializedLabel.EncryptionKey);
             writer.WriteByteString(EncryptionKey);
         }
 
         if (WrappedKey != null)
         {
-            writer.WriteInt32(6);
+            writer.WriteLabel(SerializedLabel.WrappedKey);
             writer.WriteByteString(WrappedKey);
         }
 
@@ -78,31 +78,31 @@ public sealed record SegmentReference(
 
         if (BoxHash is { } boxHash)
         {
-            writer.WriteInt32(8);
+            writer.WriteLabel(SerializedLabel.BoxHash);
             writer.WriteHash(boxHash);
         }
 
         if (BoxIndex is { } boxIndex)
         {
-            writer.WriteInt32(9);
+            writer.WriteLabel(SerializedLabel.BoxIndex);
             boxIndex.Serialize(writer);
         }
 
         if (BoxOffset != 0)
         {
-            writer.WriteInt32(10);
+            writer.WriteLabel(SerializedLabel.BoxOffset);
             writer.WriteInt32(BoxOffset);
         }
 
         if (BoxLength != 0)
         {
-            writer.WriteInt32(11);
+            writer.WriteLabel(SerializedLabel.BoxLength);
             writer.WriteInt32(BoxLength);
         }
 
         if (Secondary)
         {
-            writer.WriteInt32(12);
+            writer.WriteLabel(SerializedLabel.Secondary);
             writer.WriteBoolean(Secondary);
         }
 
@@ -127,25 +127,25 @@ public sealed record SegmentReference(
         var count = reader.ReadStartMap();
         while (count-- != 0)
         {
-            var key = reader.ReadInt32();
+            var key = reader.ReadLabel();
             switch (key)
             {
-                case 1:
+                case SerializedLabel.Hash:
                     hash = reader.ReadHash();
                     break;
-                case 2:
+                case SerializedLabel.Length:
                     length = reader.ReadInt32();
                     break;
-                case 3:
+                case SerializedLabel.Compression:
                     compression = ToCompression(reader.ReadEnum<SerializedAlgorithm>());
                     break;
-                case 4:
+                case SerializedLabel.CompressedLength:
                     compressedLength = reader.ReadInt32();
                     break;
-                case 5:
+                case SerializedLabel.EncryptionKey:
                     encryptionKey = reader.ReadByteString();
                     break;
-                case 6:
+                case SerializedLabel.WrappedKey:
                     wrappedKey = reader.ReadByteString();
 
                     Debug.Assert(initialIV.HasValue);
@@ -156,19 +156,19 @@ public sealed record SegmentReference(
                 //    // This is not set in normal references - the iv is gotten from the initial iv
                 //    wrapIV = PackagingIV.FromBytes(reader.ReadByteString());
                 //    break;
-                case 8:
+                case SerializedLabel.BoxHash:
                     boxHash = reader.ReadHash();
                     break;
-                case 9:
+                case SerializedLabel.BoxIndex:
                     boxIndex = XVC2.BoxIndex.Deserialize(reader);
                     break;
-                case 10:
+                case SerializedLabel.BoxOffset:
                     boxOffset = reader.ReadInt32();
                     break;
-                case 11:
+                case SerializedLabel.BoxLength:
                     boxLength = reader.ReadInt32();
                     break;
-                case 12:
+                case SerializedLabel.Secondary:
                     secondary = reader.ReadBoolean();
                     break;
                 default:

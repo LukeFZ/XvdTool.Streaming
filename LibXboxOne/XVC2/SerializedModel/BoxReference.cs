@@ -9,7 +9,7 @@ public sealed record BoxReference(string Name) : ISerialize
     public void Serialize(CborWriter writer)
     {
         writer.WriteStartMap(1);
-        writer.WriteInt32(25);
+        writer.WriteLabel(SerializedLabel.Name);
         writer.WriteTextString(Name);
         writer.WriteEndMap();
     }
@@ -21,10 +21,10 @@ public sealed record BoxReference(string Name) : ISerialize
         var count = reader.ReadStartMap();
         while (count-- != 0)
         {
-            var key = reader.ReadInt32();
+            var key = reader.ReadLabel();
             switch (key)
             {
-                case 25:
+                case SerializedLabel.Name:
                     name = reader.ReadTextString();
                     break;
                 default:
