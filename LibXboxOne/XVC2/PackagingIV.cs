@@ -7,6 +7,8 @@ namespace LibXboxOne.XVC2;
 
 public struct PackagingIV
 {
+    public const int Size = 16;
+
     private ulong _counter0;
     private ulong _counter1;
 
@@ -19,7 +21,7 @@ public struct PackagingIV
         };
 
         var prev = copy._counter0++;
-        if (prev + 1 != copy._counter0)
+        if (prev + 1 < copy._counter0)
             copy._counter1++;
 
         return copy;
@@ -28,8 +30,8 @@ public struct PackagingIV
     public byte[] ToArray()
     {
         var array = new byte[16];
-        BinaryPrimitives.WriteUInt64BigEndian(array, _counter0);
-        BinaryPrimitives.WriteUInt64BigEndian(array.AsSpan(8), _counter1);
+        BinaryPrimitives.WriteUInt64BigEndian(array, _counter1);
+        BinaryPrimitives.WriteUInt64BigEndian(array.AsSpan(8), _counter0);
         return array;
     }
 
@@ -41,12 +43,12 @@ public struct PackagingIV
         return FromBytes(bytes);
     }
 
-    public static PackagingIV FromBytes(byte[] value)
+    public static PackagingIV FromBytes(ReadOnlySpan<byte> value)
     {
         return new PackagingIV
         {
-            _counter0 = BinaryPrimitives.ReadUInt64BigEndian(value),
-            _counter1 = BinaryPrimitives.ReadUInt64BigEndian(value.AsSpan(8))
+            _counter1 = BinaryPrimitives.ReadUInt64BigEndian(value),
+            _counter0 = BinaryPrimitives.ReadUInt64BigEndian(value[8..])
         };
     }
 

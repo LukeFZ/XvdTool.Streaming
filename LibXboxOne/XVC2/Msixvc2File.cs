@@ -44,7 +44,9 @@ public sealed partial class Msixvc2File : IDisposable
     {
         foreach (var chunk in _chunks.Values)
         {
-            var chunkSecretContent = GetSegmentContent(chunk.SecretReference, chunk.KeyIndex);
+            var chunkSecretContent =
+                GetSegmentContent(chunk.SecretReference, chunk.KeyIndex, PackagingKeyPurpose.Content);
+
             var reader = new CborReader(chunkSecretContent);
             _chunkSecrets[chunk.Id] = ChunkDetailsSecret.Deserialize(reader);
 
@@ -124,10 +126,12 @@ public sealed partial class Msixvc2File : IDisposable
             throw new InvalidOperationException($"Failed to find entry {entryPath} in MSIXVC2");
 
         using var packageDataStream = packageEntry.Open();
-        var ms = new MemoryStream();
+
+        var buffer = new byte[packageEntry.Length];
+        using var ms = new MemoryStream(buffer);
         packageDataStream.CopyTo(ms);
 
-        return ms.GetBuffer();
+        return buffer;
     }
 
     public void Dispose()

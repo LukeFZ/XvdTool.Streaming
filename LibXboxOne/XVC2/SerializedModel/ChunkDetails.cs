@@ -5,7 +5,7 @@ using System.Formats.Cbor;
 
 namespace LibXboxOne.XVC2.SerializedModel;
 
-public sealed record ChunkDetails(List<File> Files, int Id, PackagingIV? InitialIV) : IRootSerialize
+public sealed record ChunkDetails(List<File> Files, int Id, PackagingIV? IV) : IRootSerialize
 {
     public string OpcPath => $"/Chunks/{Id}.cbor";
     public string OpcRelationship => "http://xbox.com/MSIXVC2/Chunk";
@@ -14,12 +14,12 @@ public sealed record ChunkDetails(List<File> Files, int Id, PackagingIV? Initial
     {
         writer.WriteSelfDescribeTag(CborTagEx.XVCC);
 
-        writer.WriteStartMap(2 + (InitialIV.HasValue ? 1 : 0));
+        writer.WriteStartMap(2 + (IV.HasValue ? 1 : 0));
 
         writer.WriteLabel(SerializedLabel.Id);
         writer.WriteInt32(Id);
 
-        if (InitialIV is { } initialIV)
+        if (IV is { } initialIV)
         {
             writer.WriteLabel(SerializedLabel.InitialIV);
             initialIV.Serialize(writer);
@@ -28,7 +28,7 @@ public sealed record ChunkDetails(List<File> Files, int Id, PackagingIV? Initial
         writer.WriteLabel(SerializedLabel.Files);
         writer.WriteStartArray(Files.Count);
 
-        var iv = InitialIV;
+        var iv = IV;
         foreach (var file in Files)
         {
             file.Serialize(writer, ref iv, false);
@@ -41,7 +41,7 @@ public sealed record ChunkDetails(List<File> Files, int Id, PackagingIV? Initial
     public static ChunkDetails Deserialize(CborReader reader)
     {
         int id = default;
-        PackagingIV? initialIV = default;
+        PackagingIV? iv = default;
         List<File>? files = default;
 
         reader.ReadSelfDescribeTag(CborTagEx.XVCC);
@@ -56,14 +56,14 @@ public sealed record ChunkDetails(List<File> Files, int Id, PackagingIV? Initial
                     id = reader.ReadInt32();
                     break;
                 case SerializedLabel.InitialIV:
-                    initialIV = PackagingIV.Deserialize(reader);
+                    iv = PackagingIV.Deserialize(reader);
                     break;
                 case SerializedLabel.Files:
                     var fileCount = reader.ReadStartArray();
                     files = [];
                     while (fileCount-- != 0)
                     {
-                        files.Add(File.Deserialize(reader, ref initialIV));
+                        files.Add(File.Deserialize(reader, ref iv));
                     }
                     reader.ReadEndArray();
 
@@ -77,6 +77,6 @@ public sealed record ChunkDetails(List<File> Files, int Id, PackagingIV? Initial
         reader.ReadEndMap();
 
         Debug.Assert(files != null);
-        return new ChunkDetails(files, id, initialIV);
+        return new ChunkDetails(files, id, iv);
     }
 }

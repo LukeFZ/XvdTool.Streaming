@@ -1,4 +1,5 @@
-﻿using System;
+﻿#nullable enable
+using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
@@ -24,7 +25,7 @@ public partial class Msixvc2File
         {
             foreach (var segment in file.Segments)
             {
-                ReadSegmentContent(segment, chunk.KeyIndex, fileContent.AsSpan(currentOffset, segment.Length));
+                ReadSegmentContent(segment, chunk.KeyIndex, fileContent.AsSpan(currentOffset, segment.Length), PackagingKeyPurpose.Content);
                 currentOffset += segment.Length;
             }
         }
@@ -35,14 +36,14 @@ public partial class Msixvc2File
         return fileContent;
     }
 
-    public byte[] GetSegmentContent(SegmentReference segment, int keyId)
+    public byte[] GetSegmentContent(SegmentReference segment, int keyId, PackagingKeyPurpose purpose)
     {
         var content = new byte[segment.Length];
-        ReadSegmentContent(segment, keyId, content);
+        ReadSegmentContent(segment, keyId, content, purpose);
         return content;
     }
 
-    public void ReadSegmentContent(SegmentReference segment, int keyId, Span<byte> content)
+    public void ReadSegmentContent(SegmentReference segment, int keyId, Span<byte> content, PackagingKeyPurpose purpose)
     {
         var boxContent = new byte[segment.BoxLength];
 
@@ -51,14 +52,20 @@ public partial class Msixvc2File
         if (!ValidateHash(boxContent, segment.BoxHash))
             throw new InvalidDataException("Failed to verify box content hash");
 
-        if (_package.Keys.Count != 0)
+        if (segment.EncryptionKey != null || segment.WrappedKey != null)
         {
-            throw new NotImplementedException("Decryption not yet implemented");
+            var decrypted = new byte[segment.BoxLength];
+
+            DecryptContent(boxContent, segment.Hash.Hash, decrypted, keyId, segment.EncryptionKey, segment.WrappedKey,
+                segment.WrapIV, purpose);
+
+            boxContent = decrypted;
         }
 
         if (segment.Compression != PackagingCompression.None)
         {
-            DecompressContent(boxContent, content, segment.Compression);
+            var compressed = boxContent.AsSpan(0, segment.CompressedLength);
+            DecompressContent(compressed, content, segment.Compression);
         }
         else
         {
@@ -89,7 +96,9 @@ public partial class Msixvc2File
                 break;
             }
             case PackagingCompression.Brotli:
-                BrotliDecoder.TryDecompress(compressed, decompressed, out _);
+                if (!BrotliDecoder.TryDecompress(compressed, decompressed, out _))
+                    throw new InvalidDataException("Brotli decompression failed");
+
                 break;
             default:
                 throw new UnreachableException();
@@ -129,25 +138,10 @@ public partial class Msixvc2File
         var boxName = _package.Boxes[boxIndex.Value].Name;
         var boxPath = $"Boxes/{boxName}";
 
-        var boxEntry = _archive.GetEntry(boxPath);
-        if (boxEntry == null)
-            throw new InvalidOperationException($"Failed to open box {boxPath}");
+        var content = GetEntryContent(boxPath);
+        var ms = new MemoryStream(content);
 
-        var boxEntryStream = boxEntry.Open();
-
-        if (!boxEntryStream.CanSeek)
-        {
-            var cachedContent = new byte[boxEntry.Length];
-            var stream = new MemoryStream(cachedContent);
-            
-            boxEntryStream.CopyTo(stream);
-            boxEntryStream.Dispose();
-
-            stream.Position = 0;
-            boxEntryStream = stream;
-        }
-
-        _cachedBoxEntryStreams[boxIndex] = boxEntryStream;
-        return boxEntryStream;
+        _cachedBoxEntryStreams[boxIndex] = ms;
+        return ms;
     }
 }

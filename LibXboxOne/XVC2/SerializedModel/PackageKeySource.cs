@@ -1,16 +1,17 @@
 ﻿#nullable enable
+using System;
 using System.Diagnostics;
 using System.Formats.Cbor;
 
 namespace LibXboxOne.XVC2.SerializedModel;
 
 public sealed record PackageKeySource(
-    string SourceKeyId,
+    Guid SourceKeyId,
     PackagingKeyPurpose SourcePurpose, 
     PackagingDerivationAlgorithm DerivationAlgorithm,
     byte[] KdfContext,
     PackagingEncryptionAlgorithm WrapAlgorithm,
-    byte[]? WrapIV, // unverified
+    PackagingIV? WrapIV, // unverified
     byte[] WrappedKey,
     PackagingEncryptionAlgorithm Algorithm
 
@@ -70,7 +71,7 @@ public sealed record PackageKeySource(
         writer.WriteEnum(ToSerialized(SourcePurpose));
 
         writer.WriteLabel(SerializedLabel.SourceKeyId);
-        writer.WriteTextString(SourceKeyId);
+        writer.WriteGuid(SourceKeyId);
 
         writer.WriteLabel(SerializedLabel.DerivationAlgorithm);
         writer.WriteEnum(ToSerialized(DerivationAlgorithm));
@@ -81,10 +82,10 @@ public sealed record PackageKeySource(
         writer.WriteLabel(SerializedLabel.WrapAlgorithm);
         writer.WriteEnum(ToSerialized(WrapAlgorithm));
 
-        if (WrapIV != null)
+        if (WrapIV is {} wrapIV)
         {
             writer.WriteLabel(SerializedLabel.WrapIV);
-            writer.WriteByteString(WrapIV);
+            wrapIV.Serialize(writer);
         }
 
         writer.WriteLabel(SerializedLabel.WrappedKey);
@@ -98,13 +99,13 @@ public sealed record PackageKeySource(
 
     public static PackageKeySource Deserialize(CborReader reader)
     {
-        string? sourceKeyId = default;
+        Guid sourceKeyId = default;
         PackagingKeyPurpose keyPurpose = default;
         PackagingDerivationAlgorithm derivationAlgorithm = default;
         PackagingEncryptionAlgorithm wrapAlgorithm = default;
         PackagingEncryptionAlgorithm algorithm = default;
         byte[]? kdfContext = default;
-        byte[]? wrapIV = default;
+        PackagingIV? wrapIV = default;
         byte[]? wrappedKey = default;
 
         var count = reader.ReadStartMap();
@@ -117,7 +118,7 @@ public sealed record PackageKeySource(
                     keyPurpose = ToKeyPurpose(reader.ReadEnum<SerializedKeyPurpose>());
                     break;
                 case SerializedLabel.SourceKeyId:
-                    sourceKeyId = reader.ReadTextString();
+                    sourceKeyId = reader.ReadGuid();
                     break;
                 case SerializedLabel.DerivationAlgorithm:
                     derivationAlgorithm = ToDerivationAlgorithm(reader.ReadEnum<SerializedAlgorithm>());
@@ -129,7 +130,7 @@ public sealed record PackageKeySource(
                     wrapAlgorithm = ToEncryptionAlgorithm(reader.ReadEnum<SerializedAlgorithm>());
                     break;
                 case SerializedLabel.WrapIV:
-                    wrapIV = reader.ReadByteString();
+                    wrapIV = PackagingIV.Deserialize(reader);
                     break;
                 case SerializedLabel.WrappedKey:
                     wrappedKey = reader.ReadByteString();
@@ -144,7 +145,7 @@ public sealed record PackageKeySource(
         }
         reader.ReadEndMap();
 
-        Debug.Assert(sourceKeyId != null && kdfContext != null && wrappedKey != null);
+        Debug.Assert(kdfContext != null && wrappedKey != null);
         return new PackageKeySource(sourceKeyId, keyPurpose, derivationAlgorithm, kdfContext, wrapAlgorithm,
             wrapIV, wrappedKey, algorithm);
     }

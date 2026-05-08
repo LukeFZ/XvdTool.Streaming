@@ -109,7 +109,7 @@ public sealed record SegmentReference(
         writer.WriteEndMap();
     }
 
-    public static SegmentReference Deserialize(CborReader reader, ref PackagingIV? initialIV)
+    public static SegmentReference Deserialize(CborReader reader, ref PackagingIV? rollingIV)
     {
         PackagingHash hash = default;
         int length = default;
@@ -148,9 +148,9 @@ public sealed record SegmentReference(
                 case SerializedLabel.WrappedKey:
                     wrappedKey = reader.ReadByteString();
 
-                    Debug.Assert(initialIV.HasValue);
-                    wrapIV = initialIV;
-                    initialIV = wrapIV.Value.Increment();
+                    Debug.Assert(rollingIV.HasValue);
+                    wrapIV = rollingIV;
+                    rollingIV = wrapIV.Value.Increment();
                     break;
                 //case 7:
                 //    // This is not set in normal references - the iv is gotten from the initial iv

@@ -150,7 +150,7 @@ public sealed record Chunk(
         writer.WriteEndMap();
     }
 
-    public static Chunk Deserialize(CborReader reader, ref PackagingIV? initialIV)
+    public static Chunk Deserialize(CborReader reader, ref PackagingIV? rollingIV)
     {
         IPackagingSpecifier? tags = default;
         IPackagingSpecifier? languages = default;
@@ -197,7 +197,7 @@ public sealed record Chunk(
                     boxLength = reader.ReadInt32();
                     break;
                 case SerializedLabel.SecretReference:
-                    secretReference = SegmentReference.Deserialize(reader, ref initialIV);
+                    secretReference = SegmentReference.Deserialize(reader, ref rollingIV);
                     break;
                 default:
                     reader.AssertInvalidValue();

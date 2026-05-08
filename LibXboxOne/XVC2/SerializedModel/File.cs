@@ -23,7 +23,7 @@ public sealed record File(
         Serialize(writer, ref iv, true);
     }
 
-    public void Serialize(CborWriter writer, ref PackagingIV? initialIV, bool isStandaloneSerialize)
+    public void Serialize(CborWriter writer, ref PackagingIV? rollingIV, bool isStandaloneSerialize)
     {
         writer.WriteStartMap(3 
                              + (isStandaloneSerialize && ChunkId != 0 ? 1 : 0) 
@@ -69,11 +69,11 @@ public sealed record File(
         writer.WriteEndMap();
     }
 
-    public static File Deserialize(CborReader reader, ref PackagingIV? initialIV)
+    public static File Deserialize(CborReader reader, ref PackagingIV? rollingIV)
     {
         int id = default;
         int chunkId = default;
-        PackagingIV? iv = default;
+        var iv = rollingIV;
         long length = default;
         PackagingHash hash = default;
         bool readProtected = default;
@@ -109,7 +109,7 @@ public sealed record File(
                     var segmentCount = reader.ReadStartArray();
                     while (segmentCount-- != 0)
                     {
-                        segments.Add(SegmentReference.Deserialize(reader, ref initialIV));
+                        segments.Add(SegmentReference.Deserialize(reader, ref iv));
                     }
                     reader.ReadEndArray();
                     break;
@@ -121,9 +121,9 @@ public sealed record File(
 
         reader.ReadEndMap();
 
-        if (initialIV != null)
+        if (rollingIV != null)
         {
-            initialIV = iv;
+            rollingIV = iv;
         }
 
         return new File(id, chunkId, iv, length, hash, readProtected, segments);
