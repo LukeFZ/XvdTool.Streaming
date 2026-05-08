@@ -3,5 +3,5 @@
 public enum PackagingDerivationAlgorithm
 {
     None = 0,
-    SP800_100_HMAC_SHA256 = 1
+    SP800_108_HMAC_SHA256 = 1
 }

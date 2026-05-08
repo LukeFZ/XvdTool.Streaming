@@ -10,7 +10,7 @@ public record FileFormat(List<string> Tags, int MajorVersion, int MinorVersion, 
     public System.Version Version => new(MajorVersion, MinorVersion);
 
     public override string ToString()
-        => $"{MajorVersion}.{MinorVersion}.{Patch};";
+        => $"{MajorVersion}.{MinorVersion}.{Patch}";
 
     public void Serialize(CborWriter writer)
     {
@@ -33,8 +33,9 @@ public record FileFormat(List<string> Tags, int MajorVersion, int MinorVersion, 
             writer.WriteInt32(290);
             writer.WriteStartArray(Tags.Count);
             foreach (var tag in Tags)
+            {
                 writer.WriteTextString(tag);
-
+            }
             writer.WriteEndArray();
         }
 
@@ -43,8 +44,9 @@ public record FileFormat(List<string> Tags, int MajorVersion, int MinorVersion, 
 
     public static FileFormat Deserialize(CborReader reader)
     {
-        int? major = null, minor = null;
-        var patch = 0;
+        int major = default;
+        int minor = default;
+        int patch = default;
         List<string> tags = [];
 
         var remaining = reader.ReadStartMap();
@@ -69,7 +71,6 @@ public record FileFormat(List<string> Tags, int MajorVersion, int MinorVersion, 
                     {
                         tags.Add(reader.ReadTextString());
                     }
-
                     reader.ReadEndArray();
                     break;
                 default:
@@ -80,7 +81,6 @@ public record FileFormat(List<string> Tags, int MajorVersion, int MinorVersion, 
 
         reader.ReadEndMap();
 
-        Debug.Assert(major != null && minor != null);
-        return new FileFormat(tags, major.Value, minor.Value, patch);
+        return new FileFormat(tags, major, minor, patch);
     }
 }

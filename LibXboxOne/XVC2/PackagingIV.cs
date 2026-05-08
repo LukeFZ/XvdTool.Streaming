@@ -2,6 +2,7 @@
 using System;
 using System.Buffers.Binary;
 using System.Buffers.Text;
+using System.Formats.Cbor;
 
 namespace LibXboxOne.XVC2;
 
@@ -48,5 +49,15 @@ public struct PackagingIV
             _counter0 = BinaryPrimitives.ReadUInt64BigEndian(value),
             _counter1 = BinaryPrimitives.ReadUInt64BigEndian(value.AsSpan(8))
         };
+    }
+
+    public void Serialize(CborWriter writer)
+    {
+        writer.WriteByteString(ToArray());
+    }
+
+    public static PackagingIV Deserialize(CborReader reader)
+    {
+        return FromBytes(reader.ReadByteString());
     }
 }

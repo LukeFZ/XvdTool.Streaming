@@ -11,7 +11,7 @@ public sealed record Chunk(
     IPackagingSpecifier? Specifier0,
     IPackagingSpecifier? Specifier1,
     IPackagingSpecifier? Specifier2, 
-    int Value0,
+    int Id,
     long Value1,
     bool? Unknown0, 
     bool? Unknown1, 
@@ -30,7 +30,12 @@ public sealed record Chunk(
 
         if (specifier is PackagingLogicalSpecifier logicalSpecifierValue)
         {
-            writer.WriteTag((CborTag)(0x8067 + logicalSpecifierValue.Type));
+            writer.WriteTagEx(logicalSpecifierValue.Type switch
+            {
+                LogicalSpecifierType.Any => CborTagEx.LogicalAny,
+                LogicalSpecifierType.All => CborTagEx.LogicalAll,
+                _ => throw new UnreachableException()
+            });
             
             writer.WriteStartArray(logicalSpecifierValue.Specifiers.Count);
             foreach (var subSpecifier in logicalSpecifierValue.Specifiers)
@@ -54,10 +59,16 @@ public sealed record Chunk(
 
         if (nextTag == CborReaderState.Tag)
         {
-            var tag = (uint)reader.ReadTag();
-            if (tag is 0x8067 or 0x8068)
+            var tag = reader.ReadTagEx();
+            if (tag is CborTagEx.LogicalAny or CborTagEx.LogicalAll)
             {
-                var logicalSpecifier = (LogicalSpecifierType)(tag - 0x8067);
+                var logicalSpecifier = tag switch
+                {
+                    CborTagEx.LogicalAny => LogicalSpecifierType.Any,
+                    CborTagEx.LogicalAll => LogicalSpecifierType.All,
+                    _ => throw new UnreachableException()
+                };
+
                 var subSpecifiers = new List<IPackagingSpecifier>();
 
                 var count = reader.ReadStartArray();
@@ -71,7 +82,6 @@ public sealed record Chunk(
             }
         }
 
-        Debug.Assert(false);
         throw new InvalidOperationException("Invalid packaging specifier");
     }
 
@@ -87,7 +97,7 @@ public sealed record Chunk(
                              + (Unknown3 != 0 ? 1 : 0));
 
         writer.WriteInt32(24);
-        writer.WriteInt32(Value0);
+        writer.WriteInt32(Id);
 
         if (Unknown0 is { } unknown0)
         {
@@ -147,7 +157,7 @@ public sealed record Chunk(
         IPackagingSpecifier? specifier2 = default;
         bool? unknown0 = default;
         bool? unknown1 = default;
-        int value0 = default;
+        int id = default;
         int unknown2 = default;
         long value1 = default;
         int unknown3 = default;
@@ -160,7 +170,7 @@ public sealed record Chunk(
             switch (key)
             {
                 case 24:
-                    value0 = reader.ReadInt32();
+                    id = reader.ReadInt32();
                     break;
                 case 36:
                     unknown0 = reader.ReadBoolean();
@@ -190,15 +200,14 @@ public sealed record Chunk(
                     segmentReference = SegmentReference.Deserialize(reader, ref initialIV);
                     break;
                 default:
-                    Debug.Assert(false);
-                    reader.SkipValue();
+                    reader.AssertInvalidValue();
                     break;
             }
         }
         reader.ReadEndMap();
 
         Debug.Assert(segmentReference != null);
-        return new Chunk(specifier0, specifier1, specifier2, value0, value1, unknown0, unknown1, unknown2, unknown3,
+        return new Chunk(specifier0, specifier1, specifier2, id, value1, unknown0, unknown1, unknown2, unknown3,
             segmentReference);
     }
 }

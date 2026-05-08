@@ -6,12 +6,26 @@ namespace LibXboxOne.XVC2.SerializedModel;
 
 public sealed record Segmentation(SegmentationAlgorithm Algorithm, Dictionary<SerializedLabel, object> Labels, int Algorithm2) : ISerialize
 {
+    private static SerializedAlgorithm ToSerialized(SegmentationAlgorithm algorithm) => algorithm switch
+    {
+        SegmentationAlgorithm.FastCDC => SerializedAlgorithm.FastCDC,
+        SegmentationAlgorithm.Fixed => SerializedAlgorithm.Fixed,
+        _ => throw new UnreachableException()
+    };
+
+    private static SegmentationAlgorithm ToSegmentationAlgorithm(SerializedAlgorithm algorithm) => algorithm switch
+    {
+        SerializedAlgorithm.FastCDC => SegmentationAlgorithm.FastCDC,
+        SerializedAlgorithm.Fixed => SegmentationAlgorithm.Fixed,
+        _ => throw new UnreachableException()
+    };
+
     public void Serialize(CborWriter writer)
     {
         writer.WriteStartMap(2 + (Algorithm2 != 0x301 ? 1 : 0));
 
         writer.WriteInt32(259);
-        writer.WriteInt32((int)Algorithm);
+        writer.WriteEnum(ToSerialized(Algorithm));
 
         writer.WriteInt32(266);
         writer.WriteMap(Labels);
@@ -38,7 +52,7 @@ public sealed record Segmentation(SegmentationAlgorithm Algorithm, Dictionary<Se
             switch (key)
             {
                 case 259:
-                    algorithm = (SegmentationAlgorithm)reader.ReadInt32();
+                    algorithm = ToSegmentationAlgorithm(reader.ReadEnum<SerializedAlgorithm>());
                     break;
                 case 266:
                     labels = reader.ReadMap<SerializedLabel>();
@@ -47,8 +61,7 @@ public sealed record Segmentation(SegmentationAlgorithm Algorithm, Dictionary<Se
                     algorithm2 = reader.ReadInt32();
                     break;
                 default:
-                    Debug.Assert(false);
-                    reader.SkipValue();
+                    reader.AssertInvalidValue();
                     break;
             }
         }

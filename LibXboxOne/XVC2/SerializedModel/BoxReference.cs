@@ -28,8 +28,7 @@ public sealed record BoxReference(string Name) : ISerialize
                     name = reader.ReadTextString();
                     break;
                 default:
-                    Debug.Assert(false);
-                    reader.SkipValue();
+                    reader.AssertInvalidValue();
                     break;
             }
         }

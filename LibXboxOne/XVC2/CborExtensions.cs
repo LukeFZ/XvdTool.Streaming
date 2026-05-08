@@ -1,4 +1,5 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
 using System.Diagnostics;
 using System.Formats.Cbor;
 using System.IO;
@@ -9,10 +10,15 @@ public static class CborExtensions
 {
     extension(CborWriter writer)
     {
+        public void WriteTagEx(CborTagEx tag)
+        {
+            writer.WriteTag((CborTag)tag);
+        }
+
         public void WriteSelfDescribeTag(CborTagEx tag)
         {
             writer.WriteTag(CborTag.SelfDescribeCbor);
-            writer.WriteTag((CborTag)tag);
+            writer.WriteTagEx(tag);
         }
 
         public void WriteHash(PackagingHash hash)
@@ -68,18 +74,31 @@ public static class CborExtensions
 
             writer.WriteEndMap();
         }
+
+        public void WriteGuid(Guid value)
+        {
+            writer.WriteTextString(value.ToString());
+        }
+
+        public void WriteEnum<T>(T value) where T : Enum
+        {
+            writer.WriteInt32((int)(object)value);
+        }
     }
 
     extension(CborReader reader)
     {
+        public CborTagEx ReadTagEx()
+            => (CborTagEx)reader.ReadTag();
+
         public void ReadSelfDescribeTag(CborTagEx tag)
         {
             var tag0 = reader.ReadTag();
             if (tag0 != CborTag.SelfDescribeCbor)
                 throw new InvalidDataException();
 
-            var tag1 = reader.ReadTag();
-            if ((CborTagEx)tag1 != tag)
+            var tag1 = reader.ReadTagEx();
+            if (tag1 != tag)
                 throw new InvalidDataException();
         }
 
@@ -120,6 +139,19 @@ public static class CborExtensions
             reader.ReadEndMap();
 
             return dict;
+        }
+
+        public Guid ReadGuid()
+        {
+            return Guid.Parse(reader.ReadTextString());
+        }
+
+        public T ReadEnum<T>() where T : Enum => (T)(object)reader.ReadInt32();
+
+        public void AssertInvalidValue()
+        {
+            Debug.Assert(false);
+            reader.SkipValue();
         }
     }
 }

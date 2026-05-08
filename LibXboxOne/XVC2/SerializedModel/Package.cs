@@ -37,17 +37,17 @@ public record Package(
         if (InitialIV is {} initialIV)
         {
             writer.WriteInt32(27);
-            writer.WriteByteString(initialIV.ToArray());
+            initialIV.Serialize(writer);
         }
 
         writer.WriteInt32(260);
-        writer.WriteTextString(ContentId.ToString());
+        writer.WriteGuid(ContentId);
 
         writer.WriteInt32(279);
-        writer.WriteTextString(FulfillmentContentId.ToString());
+        writer.WriteGuid(FulfillmentContentId);
 
         writer.WriteInt32(280);
-        writer.WriteTextString(ProductId.ToString());
+        writer.WriteGuid(ProductId);
 
         writer.WriteInt32(261);
         Version.Serialize(writer);
@@ -59,7 +59,7 @@ public record Package(
         writer.WriteTextString(StoreId);
 
         writer.WriteInt32(283);
-        writer.WriteUInt32((uint)SupportedPlatforms);
+        writer.WriteEnum(SupportedPlatforms);
 
         writer.WriteInt32(263);
         Segmentation.Serialize(writer);
@@ -108,7 +108,7 @@ public record Package(
         Guid productId = default;
         Version minimumSystemVersion = default;
         string? storeId = default;
-        SerializedPlatform supportedPlatforms = 0;
+        SerializedPlatform supportedPlatforms = default;
 
         reader.ReadSelfDescribeTag(CborTagEx.XVCP);
 
@@ -125,13 +125,13 @@ public record Package(
                     initialIV = PackagingIV.FromBytes(reader.ReadByteString());
                     break;
                 case 260:
-                    contentId = Guid.Parse(reader.ReadTextString());
+                    contentId = reader.ReadGuid();
                     break;
                 case 279:
-                    fulfillmentContentId = Guid.Parse(reader.ReadTextString());
+                    fulfillmentContentId = reader.ReadGuid();
                     break;
                 case 280:
-                    productId = Guid.Parse(reader.ReadTextString());
+                    productId = reader.ReadGuid();
                     break;
                 case 261:
                     version = Version.Deserialize(reader);
@@ -176,8 +176,7 @@ public record Package(
                     reader.ReadEndArray();
                     break;
                 default:
-                    Debug.Assert(false);
-                    reader.SkipValue();
+                    reader.AssertInvalidValue();
                     break;
             }
         }

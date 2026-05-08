@@ -1,10 +1,16 @@
 ﻿using System;
-using System.Diagnostics;
 using System.Formats.Cbor;
 
 namespace LibXboxOne.XVC2.SerializedModel;
 
-public record struct Version(ushort Major, ushort Minor, ushort Patch, ushort Build, Guid Id, Guid? Unknown) : ISerialize
+public record struct Version(
+    ushort Major, 
+    ushort Minor, 
+    ushort Patch, 
+    ushort Build, 
+    Guid Id, 
+    Guid? Unknown
+) : ISerialize
 {
     public override string ToString() => $"{Major}.{Minor}.{Patch}.{Build}.{Id}";
 
@@ -25,12 +31,12 @@ public record struct Version(ushort Major, ushort Minor, ushort Patch, ushort Bu
         writer.WriteUInt32(Build);
 
         writer.WriteInt32(269);
-        writer.WriteTextString(Id.ToString());
+        writer.WriteGuid(Id);
 
         if (Unknown is { } value)
         {
             writer.WriteInt32(292);
-            writer.WriteTextString(value.ToString());
+            writer.WriteGuid(value);
         }
 
         writer.WriteEndMap();
@@ -38,9 +44,12 @@ public record struct Version(ushort Major, ushort Minor, ushort Patch, ushort Bu
 
     public static Version Deserialize(CborReader reader)
     {
-        ushort major = 0, minor = 0, patch = 0, build = 0;
+        ushort major = default;
+        ushort minor = default;
+        ushort patch = default;
+        ushort build = default;
         Guid id = default;
-        Guid? unknown = null;
+        Guid? unknown = default;
 
         var remaining = reader.ReadStartMap();
         while (remaining-- != 0)
@@ -61,14 +70,13 @@ public record struct Version(ushort Major, ushort Minor, ushort Patch, ushort Bu
                     build = (ushort)reader.ReadUInt32();
                     break;
                 case 269:
-                    id = Guid.Parse(reader.ReadTextString());
+                    id = reader.ReadGuid();
                     break;
                 case 292:
-                    unknown = Guid.Parse(reader.ReadTextString());
+                    unknown = reader.ReadGuid();
                     break;
                 default:
-                    Debug.Assert(false);
-                    reader.SkipValue();
+                    reader.AssertInvalidValue();
                     break;
             }
         }

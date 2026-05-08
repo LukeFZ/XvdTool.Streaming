@@ -3,5 +3,6 @@
 public enum PackagingCompression
 {
     None = 0,
-    Brotli = 1 // TODO: maybe
+    Deflate = 1,
+    Brotli = 2
 }

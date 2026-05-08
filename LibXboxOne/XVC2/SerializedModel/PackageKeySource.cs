@@ -6,60 +6,106 @@ namespace LibXboxOne.XVC2.SerializedModel;
 
 public sealed record PackageKeySource(
     string SourceKeyId,
-    int SourcePurpose, 
-    int DerivationAlgorithm,
+    PackagingKeyPurpose SourcePurpose, 
+    PackagingDerivationAlgorithm DerivationAlgorithm,
     byte[] KdfContext,
-    int EncryptionAlgorithm,
-    byte[]? Unknown1,
+    PackagingEncryptionAlgorithm EncryptionAlgorithm,
+    byte[]? EncryptionKey, // unverified
     byte[] WrappedKey,
-    int PackagingEncryptionAlgorithm2
+    PackagingEncryptionAlgorithm PackagingEncryptionAlgorithm2
 
 ) : ISerialize
 {
+    private static PackagingDerivationAlgorithm ToDerivationAlgorithm(SerializedAlgorithm algorithm) => algorithm switch
+    {
+        SerializedAlgorithm.None => PackagingDerivationAlgorithm.None,
+        SerializedAlgorithm.SP800_108_HMAC_SHA256 => PackagingDerivationAlgorithm.SP800_108_HMAC_SHA256,
+        _ => throw new UnreachableException()
+    };
+
+    private static PackagingEncryptionAlgorithm ToEncryptionAlgorithm(SerializedAlgorithm algorithm) => algorithm switch
+    {
+        SerializedAlgorithm.None => PackagingEncryptionAlgorithm.None,
+        SerializedAlgorithm.AES_256_CBC => PackagingEncryptionAlgorithm.AES_256_CBC,
+        SerializedAlgorithm.AES_256_KW => PackagingEncryptionAlgorithm.AES_256_KW,
+        _ => throw new UnreachableException()
+    };
+
+    private static PackagingKeyPurpose ToKeyPurpose(SerializedKeyPurpose keyPurpose) => keyPurpose switch
+    {
+        SerializedKeyPurpose.Content => PackagingKeyPurpose.Content,
+        SerializedKeyPurpose.Version => PackagingKeyPurpose.Version,
+        SerializedKeyPurpose.PackageData => PackagingKeyPurpose.PackageData,
+        _ => throw new UnreachableException()
+    };
+
+    private static SerializedAlgorithm ToSerialized(PackagingDerivationAlgorithm algorithm) => algorithm switch
+    {
+        PackagingDerivationAlgorithm.None => SerializedAlgorithm.None,
+        PackagingDerivationAlgorithm.SP800_108_HMAC_SHA256 => SerializedAlgorithm.SP800_108_HMAC_SHA256,
+        _ => throw new UnreachableException()
+    };
+
+    private static SerializedAlgorithm ToSerialized(PackagingEncryptionAlgorithm algorithm) => algorithm switch
+    {
+        PackagingEncryptionAlgorithm.None => SerializedAlgorithm.None,
+        PackagingEncryptionAlgorithm.AES_256_CBC => SerializedAlgorithm.AES_256_CBC,
+        PackagingEncryptionAlgorithm.AES_256_KW => SerializedAlgorithm.AES_256_KW,
+        _ => throw new UnreachableException()
+    };
+
+    private static SerializedKeyPurpose ToSerialized(PackagingKeyPurpose keyPurpose) => keyPurpose switch
+    {
+        PackagingKeyPurpose.Content => SerializedKeyPurpose.Content,
+        PackagingKeyPurpose.Version => SerializedKeyPurpose.Version,
+        PackagingKeyPurpose.PackageData => SerializedKeyPurpose.PackageData,
+        _ => throw new UnreachableException()
+    };
+
     public void Serialize(CborWriter writer)
     {
-        writer.WriteStartMap(7 + (Unknown1 != null ? 1 : 0));
+        writer.WriteStartMap(7 + (EncryptionKey != null ? 1 : 0));
 
         writer.WriteInt32(287);
-        writer.WriteInt32(SourcePurpose);
+        writer.WriteEnum(ToSerialized(SourcePurpose));
 
         writer.WriteInt32(288);
         writer.WriteTextString(SourceKeyId);
 
         writer.WriteInt32(284);
-        writer.WriteInt32(DerivationAlgorithm);
+        writer.WriteEnum(ToSerialized(DerivationAlgorithm));
 
         writer.WriteInt32(286);
         writer.WriteByteString(KdfContext);
 
         writer.WriteInt32(285);
-        writer.WriteInt32(EncryptionAlgorithm);
+        writer.WriteEnum(ToSerialized(EncryptionAlgorithm));
 
-        if (Unknown1 != null)
+        if (EncryptionKey != null)
         {
             writer.WriteInt32(7);
-            writer.WriteByteString(Unknown1);
+            writer.WriteByteString(EncryptionKey);
         }
 
         writer.WriteInt32(6);
         writer.WriteByteString(WrappedKey);
 
         writer.WriteInt32(259);
-        writer.WriteInt32(PackagingEncryptionAlgorithm2);
+        writer.WriteEnum(ToSerialized(PackagingEncryptionAlgorithm2));
 
         writer.WriteEndMap();
     }
 
     public static PackageKeySource Deserialize(CborReader reader)
     {
-        string? sourceKeyId = null;
-        var keyPurpose = 0;
-        var derivationAlgorithm = 0;
-        var encryptionAlgorithm = 0;
-        var encryptionAlgorithm2 = 0;
-        byte[]? kdfContext = null;
-        byte[]? unknown1 = null;
-        byte[]? wrappedKey = null;
+        string? sourceKeyId = default;
+        PackagingKeyPurpose keyPurpose = default;
+        PackagingDerivationAlgorithm derivationAlgorithm = default;
+        PackagingEncryptionAlgorithm encryptionAlgorithm = default;
+        PackagingEncryptionAlgorithm encryptionAlgorithm2 = default;
+        byte[]? kdfContext = default;
+        byte[]? encryptionKey = default;
+        byte[]? wrappedKey = default;
 
         var count = reader.ReadStartMap();
         while (count-- != 0)
@@ -68,32 +114,31 @@ public sealed record PackageKeySource(
             switch (key)
             {
                 case 287:
-                    keyPurpose = reader.ReadInt32();
+                    keyPurpose = ToKeyPurpose(reader.ReadEnum<SerializedKeyPurpose>());
                     break;
                 case 288:
                     sourceKeyId = reader.ReadTextString();
                     break;
                 case 284:
-                    derivationAlgorithm = reader.ReadInt32();
+                    derivationAlgorithm = ToDerivationAlgorithm(reader.ReadEnum<SerializedAlgorithm>());
                     break;
                 case 286:
                     kdfContext = reader.ReadByteString();
                     break;
                 case 285:
-                    encryptionAlgorithm = reader.ReadInt32();
+                    encryptionAlgorithm = ToEncryptionAlgorithm(reader.ReadEnum<SerializedAlgorithm>());
                     break;
                 case 7:
-                    unknown1 = reader.ReadByteString();
+                    encryptionKey = reader.ReadByteString();
                     break;
                 case 6:
                     wrappedKey = reader.ReadByteString();
                     break;
                 case 259:
-                    encryptionAlgorithm2 = reader.ReadInt32();
+                    encryptionAlgorithm2 = ToEncryptionAlgorithm(reader.ReadEnum<SerializedAlgorithm>());
                     break;
                 default:
-                    Debug.Assert(false);
-                    reader.SkipValue();
+                    reader.AssertInvalidValue();
                     break;
             }
         }
@@ -101,6 +146,6 @@ public sealed record PackageKeySource(
 
         Debug.Assert(sourceKeyId != null && kdfContext != null && wrappedKey != null);
         return new PackageKeySource(sourceKeyId, keyPurpose, derivationAlgorithm, kdfContext, encryptionAlgorithm,
-            unknown1, wrappedKey, encryptionAlgorithm2);
+            encryptionKey, wrappedKey, encryptionAlgorithm2);
     }
 }

@@ -19,6 +19,22 @@ public sealed record SegmentReference(
     bool Secondary
 )
 {
+    private static SerializedAlgorithm ToSerialized(PackagingCompression compression) => compression switch
+    {
+        PackagingCompression.None => SerializedAlgorithm.None,
+        PackagingCompression.Deflate => SerializedAlgorithm.Deflate,
+        PackagingCompression.Brotli => SerializedAlgorithm.Brotli,
+        _ => throw new UnreachableException()
+    };
+
+    private static PackagingCompression ToCompression(SerializedAlgorithm algorithm) => algorithm switch
+    {
+        SerializedAlgorithm.None => PackagingCompression.None,
+        SerializedAlgorithm.Deflate => PackagingCompression.Deflate,
+        SerializedAlgorithm.Brotli => PackagingCompression.Brotli,
+        _ => throw new UnreachableException()
+    };
+
     public void Serialize(CborWriter writer)
     {
         writer.WriteStartMap(2 
@@ -40,7 +56,7 @@ public sealed record SegmentReference(
         if (Compression != 0)
         {
             writer.WriteInt32(3);
-            writer.WriteInt32((int)Compression);
+            writer.WriteEnum(ToSerialized(Compression));
 
             writer.WriteInt32(4);
             writer.WriteInt32(CompressedLength);
@@ -69,7 +85,7 @@ public sealed record SegmentReference(
         if (BoxIndex is { } boxIndex)
         {
             writer.WriteInt32(9);
-            writer.WriteInt32(boxIndex.Value);
+            boxIndex.Serialize(writer);
         }
 
         if (BoxOffset != 0)
@@ -121,7 +137,7 @@ public sealed record SegmentReference(
                     length = reader.ReadInt32();
                     break;
                 case 3:
-                    compression = (PackagingCompression)reader.ReadInt32();
+                    compression = ToCompression(reader.ReadEnum<SerializedAlgorithm>());
                     break;
                 case 4:
                     compressedLength = reader.ReadInt32();
@@ -134,7 +150,7 @@ public sealed record SegmentReference(
 
                     Debug.Assert(initialIV.HasValue);
                     wrapIV = initialIV;
-                    initialIV = wrapIV?.Increment();
+                    initialIV = wrapIV.Value.Increment();
                     break;
                 //case 7:
                 //    // This is not set in normal references - the iv is gotten from the initial iv
@@ -144,7 +160,7 @@ public sealed record SegmentReference(
                     boxHash = reader.ReadHash();
                     break;
                 case 9:
-                    boxIndex = new BoxIndex(reader.ReadInt32());
+                    boxIndex = XVC2.BoxIndex.Deserialize(reader);
                     break;
                 case 10:
                     boxOffset = reader.ReadInt32();
@@ -156,8 +172,7 @@ public sealed record SegmentReference(
                     secondary = reader.ReadBoolean();
                     break;
                 default:
-                    Debug.Assert(false);
-                    reader.SkipValue();
+                    reader.AssertInvalidValue();
                     break;
             }
         }

@@ -2,6 +2,6 @@
 
 public enum LogicalSpecifierType
 {
-    Unknown0 = 0,
-    Unknown1 = 1
+    Any = 0,
+    All = 1
 }
