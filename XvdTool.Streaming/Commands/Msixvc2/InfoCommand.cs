@@ -2,11 +2,11 @@
 using System.Diagnostics;
 using Spectre.Console.Cli;
 
-namespace XvdTool.Streaming.Commands;
+namespace XvdTool.Streaming.Commands.Msixvc2;
 
-internal sealed class InfoCommand : XvdCommand<InfoCommand.Settings>
+internal sealed class InfoCommand : Msixvc2Command<InfoCommand.Settings>
 {
-    public sealed class Settings : XvdCommandSettings
+    public sealed class Settings : Msixvc2CommandSettings
     {
         [Description("File path to save the output into.")]
         [CommandOption("-o|--output")]
@@ -19,13 +19,13 @@ internal sealed class InfoCommand : XvdCommand<InfoCommand.Settings>
 
     protected override int Execute(CommandContext context, Settings settings, CancellationToken cancellationToken)
     {
-        Initialize(settings, requiresWriting: false);
+        Initialize(settings);
 
-        Debug.Assert(XvdFile != null, "XvdFile != null");
+        Debug.Assert(Msixvc2 != null);
 
-        using (XvdFile)
+        using (Msixvc2)
         {
-            var infoOutput = XvdFile.PrintInfo(settings.ShowAllFiles);
+            var infoOutput = Msixvc2.PrintInfo(settings.ShowAllFiles);
             if (settings.OutputPath != null)
             {
                 var directory = Path.GetDirectoryName(settings.OutputPath);

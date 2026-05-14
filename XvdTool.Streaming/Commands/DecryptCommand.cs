@@ -14,7 +14,7 @@ internal sealed class DecryptCommand : CryptoCommand<DecryptCommand.Settings>
         public bool SkipHashCalculation { get; init; }
     }
 
-    public override int Execute(CommandContext context, Settings settings)
+    protected override int Execute(CommandContext context, Settings settings, CancellationToken cancellationToken)
     {
         if (!Initialize(settings, out var keyEntry))
         {
@@ -29,7 +29,7 @@ internal sealed class DecryptCommand : CryptoCommand<DecryptCommand.Settings>
         return 0;
     }
 
-    public override ValidationResult Validate(CommandContext context, Settings settings)
+    protected override ValidationResult Validate(CommandContext context, Settings settings)
     {
         base.Validate(context, settings);
 
