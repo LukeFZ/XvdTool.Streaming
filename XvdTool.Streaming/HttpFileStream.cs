@@ -51,7 +51,7 @@ public sealed class HttpFileStream : Stream
         var actualLength = Math.Min(Position + count, _contentLength);
 
         if (Position >= actualLength)
-            return new MemoryStream(Array.Empty<byte>());
+            return new MemoryStream([]);
 
         var header = new RangeHeaderValue(Position, actualLength - 1);
 
@@ -84,7 +84,7 @@ public sealed class HttpFileStream : Stream
         var actualLength = Math.Min(Position + count, _contentLength);
 
         if (Position >= actualLength)
-            return new MemoryStream(Array.Empty<byte>());
+            return new MemoryStream([]);
 
         var header = new RangeHeaderValue(Position, actualLength - 1);
 
