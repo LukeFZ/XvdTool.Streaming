@@ -52,7 +52,7 @@ namespace LibXboxOne.Tests
         [InlineData(2048)]
         [InlineData(3072)]
         [InlineData(4096)]
-        public async void ImportRsaPublicBlob(int keyStrength)
+        public async Task ImportRsaPublicBlob(int keyStrength)
         {
             RSAParameters rsaParams = await BCryptRsaHelper.GetRsaPublic(keyStrength);
 
@@ -66,7 +66,7 @@ namespace LibXboxOne.Tests
         [InlineData(2048)]
         [InlineData(3072)]
         [InlineData(4096)]
-        public async void ImportRsaPrivateBlob(int keyStrength)
+        public async Task ImportRsaPrivateBlob(int keyStrength)
         {
             RSAParameters rsaParams = await BCryptRsaHelper.GetRsaPrivate(keyStrength);
             
@@ -83,7 +83,7 @@ namespace LibXboxOne.Tests
         [InlineData(2048)]
         [InlineData(3072)]
         [InlineData(4096)]
-        public async void ImportRsaFullPrivateBlob(int keyStrength)
+        public async Task ImportRsaFullPrivateBlob(int keyStrength)
         {
             RSAParameters rsaParams = await BCryptRsaHelper.GetRsaFullPrivate(keyStrength);
             
@@ -105,7 +105,7 @@ namespace LibXboxOne.Tests
         [InlineData(2048)]
         [InlineData(3072)]
         [InlineData(4096)]
-        public async void ImportAndComparePrivateBlobs(int keyStrength)
+        public async Task ImportAndComparePrivateBlobs(int keyStrength)
         {
             RSAParameters rsaParams = await BCryptRsaHelper.GetRsaPrivate(keyStrength);
             RSAParameters rsaParamsFull = await BCryptRsaHelper.GetRsaFullPrivate(keyStrength);
@@ -126,7 +126,7 @@ namespace LibXboxOne.Tests
         [InlineData(2048)]
         [InlineData(3072)]
         [InlineData(4096)]
-        public async void ImportAndComparePublicBlobs(int keyStrength)
+        public async Task ImportAndComparePublicBlobs(int keyStrength)
         {
             RSAParameters rsaParamsPublic = await BCryptRsaHelper.GetRsaPublic(keyStrength);
             RSAParameters rsaParamsFullprivate = await BCryptRsaHelper.GetRsaFullPrivate(keyStrength);
@@ -144,9 +144,9 @@ namespace LibXboxOne.Tests
         [InlineData(2048)]
         [InlineData(3072)]
         [InlineData(4096)]
-        public void ImportInvalidPublicBlobCAPI(int keyStrength)
+        public async Task ImportInvalidPublicBlobCAPI(int keyStrength)
         {
-            Assert.ThrowsAsync<InvalidDataException>(async () =>
+            await Assert.ThrowsAsync<InvalidDataException>(async () =>
                 await BCryptRsaHelper.GetRsaPublicCAPI(keyStrength)
             );
         }
@@ -157,9 +157,9 @@ namespace LibXboxOne.Tests
         [InlineData(2048)]
         [InlineData(3072)]
         [InlineData(4096)]
-        public void ImportInvalidPrivateBlobCAPI(int keyStrength)
+        public async Task ImportInvalidPrivateBlobCAPI(int keyStrength)
         {
-            Assert.ThrowsAsync<InvalidDataException>(async () =>
+            await Assert.ThrowsAsync<InvalidDataException>(async () =>
                 await BCryptRsaHelper.GetRsaPrivateCAPI(keyStrength)
             );
         }
