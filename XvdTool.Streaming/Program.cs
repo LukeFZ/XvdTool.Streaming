@@ -36,6 +36,21 @@ internal class Program
                 .WithDescription("Extracts an embedded XVD from a given file.")
                 .WithExample("extract-embedded-xvd", "c:/file.xvc")
                 .WithExample("extract-embedded-xvd", "https://assets1.xboxlive.com/...");
+
+            config.AddBranch("msixvc2", msixvc2 =>
+            {
+                msixvc2.AddCommand<Commands.Msixvc2.InfoCommand>("info")
+                    .WithDescription("Prints information about a given MSIXVC2.")
+                    .WithExample("info", "c:/file.msixvc")
+                    .WithExample("info", "c:/file.msixvc", "-o log.txt")
+                    .WithExample("info", "https://assets1.xboxlive.com/...");
+
+                msixvc2.AddCommand<Commands.Msixvc2.ExtractCommand>("extract")
+                    .WithDescription("Decrypts and extracts the files contained in a given MSIXVC2.")
+                    .WithExample("extract", "c:/file.msixvc")
+                    .WithExample("extract", "c:/file.msixvc", "-o c:/output")
+                    .WithExample("extract", "https://assets1.xboxlive.com/...");
+            });
         });
 
         app.Run(args);

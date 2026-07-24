@@ -189,7 +189,7 @@ namespace LibXboxOne
 
                 for (long offset = 0; offset < _fs.Length; offset += XvdFile.PAGE_SIZE)
                 {
-                    _fs.Read(buffer, 0, buffer.Length);
+                    _fs.ReadExactly(buffer, 0, buffer.Length);
                     destFs.Write(buffer, 0, buffer.Length);
                 }
             }

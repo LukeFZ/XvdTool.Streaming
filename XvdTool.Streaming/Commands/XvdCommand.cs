@@ -21,7 +21,7 @@ internal abstract class XvdCommand<T> : Command<T> where T : XvdCommandSettings
         XvdFile.Parse();
     }
 
-    public override ValidationResult Validate(CommandContext context, T settings)
+    protected override ValidationResult Validate(CommandContext context, T settings)
     {
         if (settings.XvcPath != null && !settings.XvcPath.StartsWith("http") && !File.Exists(settings.XvcPath))
             return ValidationResult.Error("Provided file does not exist.");

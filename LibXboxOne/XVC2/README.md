@@ -1,0 +1,1 @@
+This directory contains information about the new MSIXVC2 format, introduced in the April 2026 GDK.

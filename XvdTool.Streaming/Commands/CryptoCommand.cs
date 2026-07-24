@@ -46,7 +46,7 @@ internal abstract class CryptoCommand<T> : XvdCommand<T> where T : CryptoCommand
         return true;
     }
 
-    public override ValidationResult Validate(CommandContext context, T settings)
+    protected override ValidationResult Validate(CommandContext context, T settings)
     {
         var result = base.Validate(context, settings);
 
