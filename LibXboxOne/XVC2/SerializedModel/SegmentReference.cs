@@ -16,7 +16,8 @@ public sealed record SegmentReference(
     BoxIndex BoxIndex,
     int BoxOffset,
     int BoxLength,
-    bool Secondary
+    bool Secondary,
+    int? IndexInBox = null
 )
 {
     private static SerializedAlgorithm ToSerialized(PackagingCompression compression) => compression switch
@@ -41,10 +42,10 @@ public sealed record SegmentReference(
                              + (Compression != 0 ? 2 : 0) 
                              + (EncryptionKey != null ? 1 : 0)
                              + (WrappedKey != null ? 1 : 0)
-                             + (BoxHash != default ? 1 : 0)
-                             + (BoxIndex != default ? 1 : 0)
+                             + (BoxHash != default ? 2 : 0)
                              + (BoxOffset != 0 ? 1 : 0)
                              + (BoxLength != 0 ? 1 : 0)
+                             + (IndexInBox.HasValue ? 1 : 0)
                              + (Secondary ? 1 : 0));
 
         writer.WriteLabel(SerializedLabel.Hash);
@@ -80,10 +81,7 @@ public sealed record SegmentReference(
         {
             writer.WriteLabel(SerializedLabel.BoxHash);
             writer.WriteHash(BoxHash);
-        }
 
-        if (BoxIndex != default)
-        {
             writer.WriteLabel(SerializedLabel.BoxIndex);
             BoxIndex.Serialize(writer);
         }
@@ -98,6 +96,12 @@ public sealed record SegmentReference(
         {
             writer.WriteLabel(SerializedLabel.BoxLength);
             writer.WriteInt32(BoxLength);
+        }
+
+        if (IndexInBox is { } indexInBox)
+        {
+            writer.WriteLabel(SerializedLabel.IndexInBox);
+            writer.WriteInt32(indexInBox);
         }
 
         if (Secondary)
@@ -123,6 +127,7 @@ public sealed record SegmentReference(
         int boxOffset = default;
         int boxLength = default;
         bool secondary = default;
+        int? indexInBox = default;
 
         var count = reader.ReadStartMap();
         while (count-- != 0)
@@ -168,6 +173,9 @@ public sealed record SegmentReference(
                 case SerializedLabel.BoxLength:
                     boxLength = reader.ReadInt32();
                     break;
+                case SerializedLabel.IndexInBox:
+                    indexInBox = reader.ReadInt32();
+                    break;
                 case SerializedLabel.Secondary:
                     secondary = reader.ReadBoolean();
                     break;
@@ -179,6 +187,6 @@ public sealed record SegmentReference(
 
         reader.ReadEndMap();
         return new SegmentReference(hash, length, compression, compressedLength, encryptionKey, wrappedKey, wrapIV,
-            boxHash, boxIndex, boxOffset, boxLength, secondary);
+            boxHash, boxIndex, boxOffset, boxLength, secondary, indexInBox);
     }
 }

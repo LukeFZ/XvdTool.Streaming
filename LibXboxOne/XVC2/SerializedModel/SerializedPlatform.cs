@@ -1,6 +1,6 @@
 ﻿namespace LibXboxOne.XVC2.SerializedModel;
 
-public enum SerializedPlatform : uint
+public enum SerializedPlatform
 {
     None = 0,
     PC = 1,

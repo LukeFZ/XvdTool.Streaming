@@ -52,8 +52,11 @@ public sealed record File(
         writer.WriteLabel(SerializedLabel.Hash);
         writer.WriteHash(Hash);
 
-        writer.WriteLabel(SerializedLabel.ReadProtected);
-        writer.WriteBoolean(ReadProtected);
+        if (ReadProtected)
+        {
+            writer.WriteLabel(SerializedLabel.ReadProtected);
+            writer.WriteBoolean(ReadProtected);
+        }
 
         if (Segments != null)
         {

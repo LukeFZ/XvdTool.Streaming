@@ -15,6 +15,7 @@ public enum SerializedLabel
     BoxOffset = 10,
     BoxLength = 11,
     Secondary = 12,
+    IndexInBox = 13, // 2610
     Id = 24,
     Name = 25,
     SecretReference = 26,
@@ -66,4 +67,8 @@ public enum SerializedLabel
     WrittenBy = 290,
     HashAlgorithm = 291,
     OriginalBuildId = 292,
+    UserData = 293,
+    PackageFullName = 294, // 2610
+    ContentType = 295, // 2610
+    PublisherCertificate = 296,
 }

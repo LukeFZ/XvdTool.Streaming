@@ -19,7 +19,11 @@ public record Package(
     Guid ProductId,
     Version MinimumSystemVersion,
     string StoreId,
-    SerializedPlatform SupportedPlatforms
+    SerializedPlatform SupportedPlatforms,
+    string? PackageFullName = null,
+    PackagingContentType? ContentType = null,
+    List<UserDataReference>? UserData = null,
+    byte[]? PublisherCertificate = null
 ) : IRootSerialize
 {
     public string OpcPath => "/XbocPackage.cbor";
@@ -29,7 +33,13 @@ public record Package(
     {
         writer.WriteSelfDescribeTag(CborTagEx.XVCP);
 
-        writer.WriteStartMap(11 + (InitialIV != null ? 1 : 0) + (Keys.Count > 0 ? 1 : 0));
+        writer.WriteStartMap(11 
+                             + (InitialIV != null ? 1 : 0) 
+                             + (Keys.Count > 0 ? 1 : 0)
+                             + (PackageFullName != null ? 1 : 0)
+                             + (ContentType.HasValue ? 1 : 0)
+                             + (UserData != null ? 1 : 0)
+                             + (PublisherCertificate != null ? 1 : 0));
 
         writer.WriteLabel(SerializedLabel.FileFormat);
         FileFormat.Serialize(writer);
@@ -61,6 +71,24 @@ public record Package(
         writer.WriteLabel(SerializedLabel.SupportedPlatforms);
         writer.WriteEnum(SupportedPlatforms);
 
+        if (PackageFullName != null)
+        {
+            writer.WriteLabel(SerializedLabel.PackageFullName);
+            writer.WriteTextString(PackageFullName);
+        }
+
+        if (ContentType is { } contentType)
+        {
+            writer.WriteLabel(SerializedLabel.ContentType);
+            writer.WriteEnum(contentType);
+        }
+
+        if (PublisherCertificate != null)
+        {
+            writer.WriteLabel(SerializedLabel.PublisherCertificate);
+            writer.WriteByteString(PublisherCertificate);
+        }
+
         writer.WriteLabel(SerializedLabel.Segmentation);
         Segmentation.Serialize(writer);
 
@@ -91,6 +119,17 @@ public record Package(
         }
         writer.WriteEndArray();
 
+        if (UserData != null)
+        {
+            writer.WriteLabel(SerializedLabel.UserData);
+            writer.WriteStartArray(UserData.Count);
+            foreach (var userData in UserData)
+            {
+                userData.Serialize(writer);
+            }
+            writer.WriteEndArray();
+        }
+
         writer.WriteEndMap();
     }
 
@@ -109,6 +148,10 @@ public record Package(
         Version minimumSystemVersion = default;
         string? storeId = default;
         SerializedPlatform supportedPlatforms = default;
+        string? packageFullName = default;
+        PackagingContentType contentType = default;
+        List<UserDataReference>? userData = default;
+        byte[]? publisherCertificate = default;
 
         reader.ReadSelfDescribeTag(CborTagEx.XVCP);
 
@@ -143,7 +186,16 @@ public record Package(
                     storeId = reader.ReadTextString();
                     break;
                 case SerializedLabel.SupportedPlatforms:
-                    supportedPlatforms = (SerializedPlatform)reader.ReadUInt32();
+                    supportedPlatforms = reader.ReadEnum<SerializedPlatform>();
+                    break;
+                case SerializedLabel.PackageFullName:
+                    packageFullName = reader.ReadTextString();
+                    break;
+                case SerializedLabel.ContentType:
+                    contentType = reader.ReadEnum<PackagingContentType>();
+                    break;
+                case SerializedLabel.PublisherCertificate:
+                    publisherCertificate = reader.ReadByteString();
                     break;
                 case SerializedLabel.Segmentation:
                     segmentation = Segmentation.Deserialize(reader);
@@ -175,6 +227,15 @@ public record Package(
                     }
                     reader.ReadEndArray();
                     break;
+                case SerializedLabel.UserData:
+                    var userDataCount = reader.ReadStartArray();
+                    userData = new List<UserDataReference>(userDataCount ?? 0);
+                    while (userDataCount-- != 0)
+                    {
+                        userData.Add(UserDataReference.Deserialize(reader));
+                    }
+                    reader.ReadEndArray();
+                    break;
                 default:
                     reader.AssertInvalidValue();
                     break;
@@ -184,7 +245,8 @@ public record Package(
 
         Debug.Assert(fileFormat != null && segmentation != null && boxes != null && chunks != null && storeId != null);
         return new Package(fileFormat, contentId, version, initialIV, keys, segmentation, boxes, chunks,
-            fulfillmentContentId, productId, minimumSystemVersion, storeId, supportedPlatforms);
+            fulfillmentContentId, productId, minimumSystemVersion, storeId, supportedPlatforms, packageFullName,
+            contentType, userData, publisherCertificate);
 
     }
 }
