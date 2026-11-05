@@ -34,6 +34,10 @@ internal sealed class InfoCommand : Msixvc2Command<InfoCommand.Settings>
 
                 File.WriteAllText(settings.OutputPath, infoOutput);
             }
+            else
+            {
+                Console.Write(infoOutput);
+            }
         }
 
         return 0;
