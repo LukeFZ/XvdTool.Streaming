@@ -1,5 +1,5 @@
-﻿using LibXboxOne.XVC2.SerializedModel;
-using System;
+﻿using System;
+using System.Buffers.Text;
 using System.IO;
 using System.Linq;
 using System.Text;
@@ -22,6 +22,13 @@ public partial class Msixvc2File
         sb.AppendLine($"  ProductId: {_package.ProductId}");
         sb.AppendLine($"  MinimumSystemVersion: {_package.MinimumSystemVersion}");
         sb.AppendLine($"  SupportedPlatforms: {_package.SupportedPlatforms}");
+
+        if (_package.PackageFullName != null && _package.ContentType is { } contentType)
+        {
+            sb.AppendLine($"  Package Full Name: {_package.PackageFullName}");
+            sb.AppendLine($"  Content Type: {contentType}");
+        }
+
         sb.AppendLine();
 
         sb.AppendLine("Segmentation:");
@@ -41,6 +48,16 @@ public partial class Msixvc2File
         }
         sb.AppendLine();
 
+        if (_package.UserData != null)
+        {
+            sb.AppendLine("User Data:");
+            foreach (var userData in _package.UserData)
+            {
+                sb.AppendLine($"  Name: {userData.Name}");
+            }
+            sb.AppendLine();
+        }
+
         if (_package.Keys.Count > 0)
         {
             sb.AppendLine("Encrypted: true");
@@ -56,55 +73,56 @@ public partial class Msixvc2File
                     sb.AppendLine($"    Key ID: {source.SourceKeyId}");
                     sb.AppendLine($"    Purpose: {source.SourcePurpose}");
                     sb.AppendLine($"    Derivation: {source.DerivationAlgorithm}");
-                    sb.AppendLine($"    KDF Context: {Convert.ToHexString(source.KdfContext)}");
+                    sb.AppendLine($"    KDF Context: {Base64Url.EncodeToString(source.KdfContext)}");
                     sb.AppendLine($"    Wrap: {source.WrapAlgorithm}");
                     sb.AppendLine($"    Wrapping IV: {source.WrapIV}");
-                    sb.AppendLine($"    Wrapped Key: {Convert.ToHexString(source.WrappedKey)}");
+                    sb.AppendLine($"    Wrapped Key: {Base64Url.EncodeToString(source.WrappedKey)}");
                     sb.AppendLine($"    Encryption: {source.Algorithm}");
                     sb.AppendLine();
                 }
 
                 sb.AppendLine();
             }
+        }
 
-            if (!_loadedFileNames)
+        sb.AppendLine("Files in package:");
+
+        if (!_loadedFileNames)
+        {
+            var remainingFilesToShow = 4096;
+            foreach (var chunk in _chunkDetails)
             {
-                var remainingFilesToShow = 4096;
-                foreach (var chunk in _chunkDetails)
+                foreach (var file in chunk.Value.Files)
                 {
-                    foreach (var file in chunk.Value.Files)
-                    {
-                        sb.AppendLine($"    File {file.Id}:");
-                        sb.AppendLine($"      ChunkId: 0x{chunk.Key:x}");
-                        sb.AppendLine($"      Length: 0x{file.Length:x}");
-                        sb.AppendLine($"      Hash: {file.Hash}");
-                        sb.AppendLine($"      ReadProtected: {file.ReadProtected}");
-                        sb.AppendLine();
+                    sb.AppendLine($"  File {file.Id}:");
+                    sb.AppendLine($"    ChunkId: 0x{chunk.Key:x}");
+                    sb.AppendLine($"    Length: 0x{file.Length:x}");
+                    sb.AppendLine($"    Hash: {file.Hash}");
+                    sb.AppendLine($"    ReadProtected: {file.ReadProtected}");
+                    sb.AppendLine();
 
-                        if (!showAllFiles && remainingFilesToShow-- == 0)
-                            break;
-                    }
-
-                    if (remainingFilesToShow == 0)
+                    if (!showAllFiles && remainingFilesToShow-- == 0)
                         break;
                 }
-            }
-            else
-            {
-                sb.AppendLine("  Files in package:");
-                foreach (var (name, file) in showAllFiles ? _files : _files.Take(Math.Min(4096, _files.Count)))
-                {
-                    sb.AppendLine($"    File {name}:");
-                    sb.AppendLine($"      ChunkId: 0x{file.ChunkId:x}");
-                    sb.AppendLine($"      Length: 0x{file.Length:x}");
-                    sb.AppendLine($"      Hash: {file.Hash}");
-                    sb.AppendLine($"      ReadProtected: {file.ReadProtected}");
-                    sb.AppendLine();
-                }
-            }
 
-            sb.AppendLine();
+                if (remainingFilesToShow == 0)
+                    break;
+            }
         }
+        else
+        {
+            foreach (var (name, file) in showAllFiles ? _files : _files.Take(Math.Min(4096, _files.Count)))
+            {
+                sb.AppendLine($"  File {name}:");
+                sb.AppendLine($"    ChunkId: 0x{file.ChunkId:x}");
+                sb.AppendLine($"    Length: 0x{file.Length:x}");
+                sb.AppendLine($"    Hash: {file.Hash}");
+                sb.AppendLine($"    ReadProtected: {file.ReadProtected}");
+                sb.AppendLine();
+            }
+        }
+
+        sb.AppendLine();
 
         return sb.ToString();
     }
