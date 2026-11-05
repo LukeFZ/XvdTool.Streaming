@@ -67,8 +67,8 @@ public enum SerializedLabel
     WrittenBy = 290,
     HashAlgorithm = 291,
     OriginalBuildId = 292,
-    UserData = 293,
+    UserData = 293, // 2610
     PackageFullName = 294, // 2610
     ContentType = 295, // 2610
-    PublisherCertificate = 296,
+    PublisherCertificate = 296, // 2610
 }
