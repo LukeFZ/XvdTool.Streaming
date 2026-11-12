@@ -1,4 +1,4 @@
-﻿using System.ComponentModel;
+using System.ComponentModel;
 using System.Diagnostics;
 using Spectre.Console.Cli;
 
@@ -18,31 +18,37 @@ internal sealed class InfoBulkCommand : XvdCommand<InfoBulkCommand.Settings>
         
         [Description("Exclude files matching any wildcard pattern, for example: *.txt, */something/*, something/*/*")]
         [CommandOption("-e|--exclude")]
-        public string[]? Exclude { get; init; }
+        [TypeConverter(typeof(XvdFilePattern.Converter))]
+        public XvdFilePattern[]? Exclude { get; init; }
         
         [Description("Include files matching any wildcard pattern, for example: *.txt, */something/*, something/*/*")]
         [CommandOption("-i|--include")]
-        public string[]? Include { get; init; }
+        [TypeConverter(typeof(XvdFilePattern.Converter))]
+        public XvdFilePattern[]? Include { get; init; }
     }
 
     public override int Execute(CommandContext context, Settings settings)
     {
         Debug.Assert(settings.XvcPath != null, "settings.XvcPath != null");
 
-        if (!string.IsNullOrEmpty(settings.OutputPath) && File.Exists(settings.OutputPath)) {
+        if (!string.IsNullOrEmpty(settings.OutputPath) && File.Exists(settings.OutputPath)) 
+        {
             File.Delete(settings.OutputPath);
         }
         
         var filePaths = File.ReadAllLines(settings.XvcPath);
         var fileDict = new HashSet<string>();
-        foreach (var filePath in filePaths) {
+        foreach (var filePath in filePaths) 
+        {
             var components = new Uri(filePath).AbsolutePath.Split('/');
-            if (components.Length < 3 || (!components[^1].EndsWith(".xvc") && !components[^1].EndsWith(".msixvc"))) {
+            if (components.Length < 3 || (!components[^1].EndsWith(".xvc") && !components[^1].EndsWith(".msixvc"))) 
+            {
                 continue;
             }
              
             var versionId = components[^2];
-            if (fileDict.Contains(versionId)) {
+            if (fileDict.Contains(versionId)) 
+            {
                 continue;
             }
              
@@ -53,10 +59,11 @@ internal sealed class InfoBulkCommand : XvdCommand<InfoBulkCommand.Settings>
  
             xvdFile.Parse();
             var outStr = $"== {versionId} ==" + xvdFile.PrintInfoBulk(settings.Files, settings.Exclude, settings.Include) + "\n";
-            Console.WriteLine($"== {versionId} ==" + xvdFile.PrintInfoBulk(settings.Files, settings.Exclude, settings.Include) + "\n");
+            Console.WriteLine(outStr);
             
-            if (!string.IsNullOrEmpty(settings.OutputPath)) {
-                File.AppendAllTextAsync(settings.OutputPath, filePath + ":\n\n" + outStr + "\n");
+            if (!string.IsNullOrEmpty(settings.OutputPath)) 
+            {
+                File.AppendAllTextAsync(settings.OutputPath, $"{filePath}:\n\n{outStr}\n");
             }
         }
 

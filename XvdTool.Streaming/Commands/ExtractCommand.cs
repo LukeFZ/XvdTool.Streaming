@@ -24,7 +24,8 @@ internal sealed class ExtractCommand : CryptoCommand<ExtractCommand.Settings>
 
         [Description("Extract only matching segment file paths (exact or * and ? wildcards). May be specified multiple times.")]
         [CommandOption("-f|--file <PATTERN>")]
-        public string[]? FilePatterns { get; init; }
+        [TypeConverter(typeof(XvdFilePattern.Converter))]
+        public XvdFilePattern[]? FilePatterns { get; init; }
 
         [Description("Skips performing hash verification on the pages prior to decryption.\nMassively improves performance at the cost of integrity.\nOnly use this if you know the file is not corrupt!")]
         [CommandOption("-n|--no-hash-check")]
