@@ -17,7 +17,13 @@ internal class Program
                 .WithExample("info", "c:/file.msixvc")
                 .WithExample("info", "c:/file.msixvc", "-o log.txt")
                 .WithExample("info", "https://assets1.xboxlive.com/...");
-
+            
+            config.AddCommand<InfoBulkCommand>("infobulk")
+                .WithDescription("Prints information about a given files (bulk).")
+                .WithExample("infobulk", "c:/file.msixvc")
+                .WithExample("infobulk", "c:/file.msixvc", "-o log.txt")
+                .WithExample("infobulk", "https://assets1.xboxlive.com/...");
+            
             config.AddCommand<ExtractCommand>("extract")
                 .WithDescription("Decrypts and extracts the files contained in a given file.")
                 .WithExample("extract", "c:/file.msixvc")

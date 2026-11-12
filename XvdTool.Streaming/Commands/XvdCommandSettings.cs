@@ -1,4 +1,5 @@
 ﻿using System.ComponentModel;
+using System.Text.RegularExpressions;
 using Spectre.Console.Cli;
 
 namespace XvdTool.Streaming.Commands;
