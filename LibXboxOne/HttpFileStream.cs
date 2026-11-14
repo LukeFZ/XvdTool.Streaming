@@ -1,7 +1,12 @@
-﻿using System.Diagnostics;
+﻿using System;
+using System.Diagnostics;
+using System.IO;
+using System.Net.Http;
 using System.Net.Http.Headers;
+using System.Threading;
+using System.Threading.Tasks;
 
-namespace XvdTool.Streaming;
+namespace LibXboxOne;
 
 public sealed class HttpFileStream : Stream
 {
@@ -139,7 +144,7 @@ public sealed class HttpFileStream : Stream
         {
             SeekOrigin.Begin => offset,
             SeekOrigin.Current => Position + offset,
-            SeekOrigin.End => _contentLength - offset,
+            SeekOrigin.End => _contentLength + offset,
             _ => throw new UnreachableException()
         };
 

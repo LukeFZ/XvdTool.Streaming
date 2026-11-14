@@ -11,6 +11,8 @@ namespace LibXboxOne.XVC2;
 
 public partial class Msixvc2File
 {
+    private const string BaseBoxUrl = "http://assets1.xboxlive.com";
+
     private readonly Dictionary<BoxIndex, Stream> _cachedBoxEntryStreams = [];
 
     public byte[] GetFileContent(string filePath)
@@ -137,12 +139,21 @@ public partial class Msixvc2File
             return cachedStream;
 
         var boxName = _package.Boxes[boxIndex.Value].Name;
-        var boxPath = $"Boxes/{boxName}";
 
-        var content = GetEntryContent(boxPath);
-        var ms = new MemoryStream(content);
+        Stream stream;
+        if (boxName.StartsWith('/'))
+        {
+            var boxUrl = BaseBoxUrl + boxName;
+            stream = HttpFileStream.Open(boxUrl);
+        }
+        else
+        {
+            var boxPath = "Boxes/" + boxName;
+            var content = GetEntryContent(boxPath);
+            stream = new MemoryStream(content);
+        }
 
-        _cachedBoxEntryStreams[boxIndex] = ms;
-        return ms;
+        _cachedBoxEntryStreams[boxIndex] = stream;
+        return stream;
     }
 }
