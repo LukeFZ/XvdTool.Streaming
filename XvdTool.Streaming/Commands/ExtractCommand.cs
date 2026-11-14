@@ -25,13 +25,17 @@ internal sealed class ExtractCommand : CryptoCommand<ExtractCommand.Settings>
         [Description("Skips performing hash verification on the pages prior to decryption.\nMassively improves performance at the cost of integrity.\nOnly use this if you know the file is not corrupt!")]
         [CommandOption("-n|--no-hash-check")]
         public bool SkipHashCheck { get; init; }
+
+        [Description("Only extract unencrypted regions.")]
+        [CommandOption("-u|--unencrypted-only")]
+        public bool UnencryptedOnly { get; init; }
     }
 
     protected override int Execute(CommandContext context, Settings settings, CancellationToken cancellationToken)
     {
         Debug.Assert(settings.OutputDirectory != null, "settings.OutputDirectory != null");
 
-        if (!Initialize(settings, out var keyEntry))
+        if (!Initialize(settings, out var keyEntry) && !settings.UnencryptedOnly)
         {
             return -1;
         }
@@ -44,7 +48,7 @@ internal sealed class ExtractCommand : CryptoCommand<ExtractCommand.Settings>
 
         using (XvdFile)
         {
-            XvdFile.ExtractFiles(outputPath, keyEntry, settings.SkipHashCheck, settings.SkipRegions, settings.DownloadRegions);
+            XvdFile.ExtractFiles(outputPath, keyEntry, settings.SkipHashCheck, settings.SkipRegions, settings.DownloadRegions, settings.UnencryptedOnly);
         }
 
         ConsoleLogger.WriteInfoLine("[green bold]Successfully[/] extracted files.");

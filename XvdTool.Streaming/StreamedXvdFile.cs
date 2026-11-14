@@ -375,7 +375,8 @@ public partial class StreamedXvdFile : IDisposable
         return LocalVerifyDataHashes();
     }
 
-    public void ExtractFiles(string outputPath, in KeyEntry key, bool skipHashCheck = false, uint[]? skippedRegionList = null, uint[]? downloadRegionList = null)
+    public void ExtractFiles(string outputPath, in KeyEntry key, bool skipHashCheck = false, uint[]? skippedRegionList = null, 
+        uint[]? downloadRegionList = null, bool unencryptedOnly = false)
     {
         if (!_hasXvcInfo)
         {
@@ -397,7 +398,7 @@ public partial class StreamedXvdFile : IDisposable
 
         AesXtsDecryptorNi cipher = null!;
 
-        if (_encrypted)
+        if (_encrypted && !unencryptedOnly)
         {
             if (!Aes.IsSupported)
             {
@@ -421,6 +422,14 @@ public partial class StreamedXvdFile : IDisposable
                 .Where(region => downloadRegionList.Contains((uint)region.Id)
                 && (region.FirstSegmentIndex != 0 || firstSegmentOffset == region.Offset))
                 .ToArray();
+        }
+        else if (unencryptedOnly)
+        {
+            extractableRegionList =
+            [
+                .. _xvcRegions.Where(x =>
+                    x.KeyId == XvcConstants.XVC_KEY_NONE && (x.FirstSegmentIndex != 0 || firstSegmentOffset == x.Offset))
+            ];
         }
         else
         {
