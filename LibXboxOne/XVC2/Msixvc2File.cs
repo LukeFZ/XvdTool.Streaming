@@ -145,6 +145,11 @@ public sealed partial class Msixvc2File : IDisposable
 
     public void Dispose()
     {
+        foreach (var value in _cachedBoxEntryStreams.Values)
+        {
+            value.Dispose();
+        }
+
         _archive.Dispose();
     }
 }

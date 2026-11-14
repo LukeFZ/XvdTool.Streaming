@@ -12,11 +12,9 @@ internal abstract class XvdCommand<T> : Command<T> where T : XvdCommandSettings
     {
         Debug.Assert(settings.XvcPath != null, "settings.XvcPath != null");
 
-        var path = settings.XvcPath;
+        var stream = Stream.OpenFileStream(settings.XvcPath, requiresWriting);
 
-        XvdFile = path.StartsWith("http")
-            ? StreamedXvdFile.OpenFromUrl(path)
-            : StreamedXvdFile.OpenFromFile(path, requiresWriting);
+        XvdFile = StreamedXvdFile.Open(stream);
 
         XvdFile.Parse();
     }

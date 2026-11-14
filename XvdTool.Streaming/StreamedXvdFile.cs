@@ -78,18 +78,7 @@ public partial class StreamedXvdFile : IDisposable
         _segmentPaths = [];
     }
 
-    public static StreamedXvdFile OpenFromUrl(string url)
-    {
-        return new StreamedXvdFile(HttpFileStream.Open(url));
-    }
-
-    public static StreamedXvdFile OpenFromFile(string filePath, bool writing = true)
-    {
-        if (!File.Exists(filePath))
-            throw new InvalidOperationException("File does not exist");
-
-        return new StreamedXvdFile(File.Open(filePath, FileMode.Open, writing ? FileAccess.ReadWrite : FileAccess.Read, FileShare.Read));
-    }
+    public static StreamedXvdFile Open(Stream stream) => new(stream);
 
     public void Parse()
     {

@@ -10,16 +10,11 @@ internal abstract class Msixvc2Command<T> : Command<T> where T : Msixvc2CommandS
 {
     protected Msixvc2File Msixvc2 = default!;
 
-    private static Stream OpenStream(string path)
-        => path.StartsWith("http") 
-            ? HttpFileStream.Open(path) 
-            : File.OpenRead(path);
-
     protected void Initialize(Msixvc2CommandSettings settings)
     {
         Debug.Assert(settings.XvcPath != null);
 
-        using var stream = OpenStream(settings.XvcPath);
+        var stream = Stream.OpenFileStream(settings.XvcPath, false);
 
         if (!Msixvc2File.CheckMsixvc2Magic(stream))
         {
