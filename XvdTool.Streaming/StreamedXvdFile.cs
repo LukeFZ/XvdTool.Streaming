@@ -205,6 +205,14 @@ public partial class StreamedXvdFile : IDisposable
         }
     }
 
+    private static string NormalizeSegmentPathForOutput(string segmentPath)
+    {
+        // Segment metadata uses Windows separators. Normalize right before writing files.
+        return segmentPath
+            .Replace('\\', Path.DirectorySeparatorChar)
+            .Replace('/', Path.DirectorySeparatorChar);
+    }
+
     private void ParseXvcInfo()
     {
         _stream.Position = (long)_xvcInfoOffset;
@@ -544,8 +552,9 @@ public partial class StreamedXvdFile : IDisposable
         {
             var fileSize = _segments[currentSegment].FileSize;
             var filePath = _segmentPaths[currentSegment];
+            var normalizedRelativePath = NormalizeSegmentPathForOutput(filePath);
 
-            var outputPath = Path.Join(output, filePath);
+            var outputPath = Path.Join(output, normalizedRelativePath);
             var outputDirectory = Path.GetDirectoryName(outputPath);
             if (outputDirectory != null)
                 Directory.CreateDirectory(outputDirectory);

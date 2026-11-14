@@ -55,7 +55,10 @@ public sealed class HttpFileStream : Stream
     {
         var actualLength = Math.Min(Position + count, _contentLength);
 
-        var header = new RangeHeaderValue(Position, actualLength);
+        if (Position >= actualLength)
+            return new MemoryStream([]);
+
+        var header = new RangeHeaderValue(Position, actualLength - 1);
 
 #if DEBUG
         Console.WriteLine($"Sending request to read from {Position} to {actualLength} (0x{actualLength - Position:x8})");
@@ -85,7 +88,10 @@ public sealed class HttpFileStream : Stream
     {
         var actualLength = Math.Min(Position + count, _contentLength);
 
-        var header = new RangeHeaderValue(Position, actualLength);
+        if (Position >= actualLength)
+            return new MemoryStream([]);
+
+        var header = new RangeHeaderValue(Position, actualLength - 1);
 
 #if DEBUG
         Console.WriteLine($"Sending request to read from {Position} to {actualLength}");
