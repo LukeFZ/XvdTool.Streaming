@@ -1,5 +1,4 @@
 ﻿using System.Diagnostics;
-using LibXboxOne;
 using LibXboxOne.XVC2;
 using Spectre.Console;
 using Spectre.Console.Cli;
@@ -23,9 +22,18 @@ internal abstract class Msixvc2Command<T> : Command<T> where T : Msixvc2CommandS
 
         Msixvc2 = Msixvc2File.Open(stream);
 
-        var contentKey = settings.ContentKey != null ? Convert.FromBase64String(settings.ContentKey) : null;
-        var versionKey = settings.VersionKey != null ? Convert.FromBase64String(settings.VersionKey) : null;
-        Msixvc2.SubmitKeys(contentKey, versionKey);
+        if (settings.ContentKey != null || settings.VersionKey != null)
+        {
+            var contentKey = settings.ContentKey != null ? Convert.FromBase64String(settings.ContentKey) : null;
+            var versionKey = settings.VersionKey != null ? Convert.FromBase64String(settings.VersionKey) : null;
+            Msixvc2.SubmitKeys(contentKey, versionKey);
+        }
+
+        if (settings.CikPath != null)
+        {
+            var entry = File.ReadAllBytes(settings.CikPath)[16..];
+            Msixvc2.SubmitKeys(entry, null);
+        }
 
         try
         {

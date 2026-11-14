@@ -1,6 +1,7 @@
 ﻿#nullable enable
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Linq;
 using LibXboxOne.XVC2.SerializedModel;
 
@@ -9,6 +10,20 @@ namespace LibXboxOne.XVC2;
 public partial class Msixvc2File
 {
     private readonly Dictionary<string, byte[]> _storedKeyMaterial = [];
+
+    public Guid GetKeyId()
+    {
+        Debug.Assert(_package.Keys.Count > 0);
+        var contentKeySource = _package.Keys[0].Sources.Single(x => x.SourcePurpose == PackagingKeyPurpose.Content);
+
+        // This is either a GUID in string form, or a 32 byte hex blob (for CIK key ids).
+        // We only use the first 16 bytes as a GUID to be consistent with the other XVC tooling and CikExtractor.
+
+        if (contentKeySource.SourceKeyId.Length == 32)
+            return Guid.Parse(contentKeySource.SourceKeyId[..16]);
+
+        return Guid.Parse(contentKeySource.SourceKeyId);
+    }
 
     public void SubmitKeyMaterial(string keyId, byte[] keyMaterial)
     {
@@ -24,13 +39,13 @@ public partial class Msixvc2File
 
         if (contentKey != null)
         {
-            var contentKeySource = sources.First(x => x.SourcePurpose == PackagingKeyPurpose.Content);
+            var contentKeySource = sources.Single(x => x.SourcePurpose == PackagingKeyPurpose.Content);
             SubmitKeyMaterial(contentKeySource.SourceKeyId, contentKey);
         }
 
         if (versionKey != null)
         {
-            var versionKeySource = sources.First(x => x.SourcePurpose == PackagingKeyPurpose.Version);
+            var versionKeySource = sources.Single(x => x.SourcePurpose == PackagingKeyPurpose.Version);
             SubmitKeyMaterial(versionKeySource.SourceKeyId, versionKey);
         }
     }

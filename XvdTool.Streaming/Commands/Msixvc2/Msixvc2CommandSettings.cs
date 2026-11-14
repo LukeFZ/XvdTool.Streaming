@@ -9,11 +9,15 @@ internal abstract class Msixvc2CommandSettings : CommandSettings
     [CommandArgument(0, "<path/url>")]
     public string? XvcPath { get; init; }
 
-    [Description("(Encrypted packages only) Base64-encoded content key")]
+    [Description("Path to the .cik file to be used.")]
+    [CommandOption("--cik")]
+    public string? CikPath { get; init; }
+
+    [Description("Base64-encoded content key (Encrypted packages only).")]
     [CommandOption("-c|--content-key")]
     public string? ContentKey { get; init; }
 
-    [Description("(Encrypted packages only, currently unused) Base64-encoded version key")]
+    [Description("Base64-encoded version key (Encrypted packages only, currently unused).")]
     [CommandOption("-v|--version-key")]
     public string? VersionKey { get; init; }
 }
