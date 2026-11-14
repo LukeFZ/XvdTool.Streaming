@@ -1,6 +1,7 @@
 ﻿using System.Diagnostics;
 using System.Runtime.InteropServices;
 using System.Security.Cryptography;
+using System.Text.RegularExpressions;
 using DiscUtils;
 using DiscUtils.Ntfs;
 using DiscUtils.Partitions;
@@ -8,6 +9,7 @@ using LibXboxOne;
 using LibXboxOne.XVC2;
 using Spectre.Console;
 using Spectre.Console.Rendering;
+using XvdTool.Streaming.Commands;
 using XvdTool.Streaming.Crypto;
 using Aes = System.Runtime.Intrinsics.X86.Aes;
 
@@ -384,8 +386,8 @@ public partial class StreamedXvdFile : IDisposable
         return LocalVerifyDataHashes();
     }
 
-    public void ExtractFiles(string outputPath, in KeyEntry key, bool skipHashCheck = false, uint[]? skippedRegionList = null, 
-        uint[]? downloadRegionList = null, bool unencryptedOnly = false)
+    public void ExtractFiles(string outputPath, in KeyEntry key, bool skipHashCheck = false, uint[]? skippedRegionList = null,
+        uint[]? downloadRegionList = null, XvdFilePattern[]? filePatterns = null, bool unencryptedOnly = false)
     {
         if (!_hasXvcInfo)
         {
@@ -417,6 +419,13 @@ public partial class StreamedXvdFile : IDisposable
             }
 
             cipher = new AesXtsDecryptorNi(key.DataKey.AsReadOnlySpan<byte>(), key.TweakKey.AsReadOnlySpan<byte>());
+        }
+        
+        //If user provides -f, we are using the selector path instead.
+        if (filePatterns is { Length: > 0 }) 
+        {
+            ExtractSelectedFiles(outputPath, cipher, skipHashCheck, skippedRegionList, downloadRegionList, filePatterns);
+            return;
         }
 
         var fullOutputPath = Path.GetFullPath(outputPath); // Expand path to prevent issues later
@@ -924,19 +933,130 @@ public partial class StreamedXvdFile : IDisposable
         {
             return new Rows(text.Split(Environment.NewLine).Select(x => new Text(x.Trim())));
         }
+    }
 
-        static string ToFileSize(ulong size)
+    public string PrintInfoBulk(string[]? files, XvdFilePattern[]? exclude = null, XvdFilePattern[]? include = null)
+    {
+        if (!_hasPartitionFiles && !_hasSegmentMetadata) {
+            return "\n      No Partition or Segment Files";
+        }
+        
+        var matchingFiles = new List<(string Path, ulong Size)>();
+        matchingFiles.AddRange(_partitionFileEntries);
+        if (_hasSegmentMetadata) {
+            for (var i = 0; i  < _segments.Length; i++) 
+            {
+                var segment = _segments[i];
+                matchingFiles.Add((_segmentPaths[i], segment.FileSize));
+            }
+        }
+        
+        var fileCount = matchingFiles.Count;
+        var totalSize = (ulong)matchingFiles.Sum(x => (double)x.Size);
+
+        var hasExclude = exclude is { Length: > 0 };
+        var hasInclude = include is { Length: > 0 };
+        if (hasExclude || hasInclude) 
         {
-            if (size < 1024)
-                return $"{size} B";
+            var newMatches = new List<(string Path, ulong Size)>();
+            foreach (var file in matchingFiles) 
+            {
+                var normalized = XvdFilePattern.NormalizePath(file.Path);
+                var fileName = Path.GetFileName(normalized);
+                if (hasExclude && exclude!.Any(exc => exc.Matches(normalized, fileName)))
+                {
+                    continue;
+                }
+                
+                if (hasInclude && !include!.Any(inc => inc.Matches(normalized, fileName)))
+                {
+                    continue;
+                }
+                
+                newMatches.Add(file);
+            }
+            
+            matchingFiles = newMatches;
+        }
 
-            if (size < 1024 * 1024)
-                return $"{Math.Round(size / 1024.0, 2)} KB";
+        matchingFiles.Sort((a, b) => {
+            var sorter = 0;
+            if ((sorter = SortExtension(".exe", a.Path, b.Path)) != 0) 
+            {
+                return sorter;
+            }
+            
+            if ((sorter = SortExtension(".bin", a.Path, b.Path)) != 0) 
+            {
+                return sorter;
+            }   
+            
+            if ((sorter = SortExtension(".dll", a.Path, b.Path)) != 0) 
+            {
+                return sorter;
+            }
 
-            if (size < 1024 * 1024 * 1024)
-                return $"{Math.Round(size / (1024.0 * 1024.0), 2)} MB";
+            return string.Compare(a.Path, b.Path, StringComparison.OrdinalIgnoreCase);
+        });
+        
+        var str = string.Empty;
+        if (files != null) 
+        {
+            foreach (var file in files) 
+            {
+                var entry = matchingFiles.FirstOrDefault(x => x.Path == file);
+                if (string.IsNullOrEmpty(entry.Path)) 
+                {
+                    continue;
+                }
 
-            return $"{Math.Round(size / (1024.0 * 1024.0 * 1024.0), 2)} GB";
+                str += GetFileLineString(file, entry.Size);
+            }
+        }
+        else 
+        {
+            foreach (var entry in matchingFiles) 
+            {
+                if (string.IsNullOrEmpty(entry.Path)) 
+                {
+                    continue;
+                }
+                
+                str += GetFileLineString(entry.Path, entry.Size);
+            }
+        }
+
+        if (string.IsNullOrEmpty(str)) 
+        {
+            return "\n      No Matching Files";
+        }
+        
+        str += $"\n\n      {fileCount} Total Files ({ToFileSize(totalSize)})";
+        return str;
+
+        static int SortExtension(string ext, string a, string b)
+        {
+            if (a.EndsWith(ext)) 
+            {
+                if (b.EndsWith(ext)) 
+                {
+                    return 0;
+                }
+                
+                return -1;
+            }
+            
+            if (b.EndsWith(ext)) 
+            {
+                return 1;
+            }
+
+            return 0;
+        }
+
+        static string GetFileLineString(string path, ulong size)
+        {
+            return $"\n      {ToFileSize(size),-15} {path}";
         }
     }
 
@@ -945,5 +1065,19 @@ public partial class StreamedXvdFile : IDisposable
         _reader.Dispose();
         _stream.Dispose();
         GC.SuppressFinalize(this);
+    }
+    
+    private static string ToFileSize(ulong size)
+    {
+        if (size < 1024)
+            return $"{size} B";
+
+        if (size < 1024 * 1024)
+            return $"{Math.Round(size / 1024.0, 2)} KB";
+
+        if (size < 1024 * 1024 * 1024)
+            return $"{Math.Round(size / (1024.0 * 1024.0), 2)} MB";
+
+        return $"{Math.Round(size / (1024.0 * 1024.0 * 1024.0), 2)} GB";
     }
 }

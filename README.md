@@ -6,8 +6,12 @@ Also allows for very fast extraction/decryption/hash-verification of local XVC/X
 Commands supported for both local and streamed types: 
 - `info`
     - Lets you view detailed information (headers, regions, segments, files) for a given file.
+- `infobulk`
+    - Lets you view files contained in multiple XVC/MSIXVC files, (links seperated by newline in a txt file).
+    - Use `-e="*.png` to exclude listing files, i.e. exclude all png files.
 - `extract`
-    - Lets you decrypt and extract the embedded files contained within a XVC.  
+    - Lets you decrypt and extract the embedded files contained within a XVC.
+    - Use `-f="*.txt"` to extract individual files. Supports`*` wildcards.
     *Note: Only supports the newer type of XVC which do not just contain a disk partition. (SegmentMetadata.bin)*
 - `extract-embedded-xvd`
     - Lets you extract the (encrypted) embedded XVD for Xbox XVCs.

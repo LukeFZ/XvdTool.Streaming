@@ -22,6 +22,11 @@ internal sealed class ExtractCommand : CryptoCommand<ExtractCommand.Settings>
         [CommandOption("-w|--download-region")]
         public uint[]? DownloadRegions { get; init; }
 
+        [Description("Extract only matching segment file paths (exact or * and ? wildcards). May be specified multiple times.")]
+        [CommandOption("-f|--file <PATTERN>")]
+        [TypeConverter(typeof(XvdFilePattern.Converter))]
+        public XvdFilePattern[]? FilePatterns { get; init; }
+
         [Description("Skips performing hash verification on the pages prior to decryption.\nMassively improves performance at the cost of integrity.\nOnly use this if you know the file is not corrupt!")]
         [CommandOption("-n|--no-hash-check")]
         public bool SkipHashCheck { get; init; }
@@ -48,7 +53,7 @@ internal sealed class ExtractCommand : CryptoCommand<ExtractCommand.Settings>
 
         using (XvdFile)
         {
-            XvdFile.ExtractFiles(outputPath, keyEntry, settings.SkipHashCheck, settings.SkipRegions, settings.DownloadRegions, settings.UnencryptedOnly);
+            XvdFile.ExtractFiles(outputPath, keyEntry, settings.SkipHashCheck, settings.SkipRegions, settings.FilePatterns, settings.DownloadRegions);
         }
 
         ConsoleLogger.WriteInfoLine("[green bold]Successfully[/] extracted files.");
