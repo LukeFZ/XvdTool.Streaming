@@ -6,10 +6,12 @@ namespace LibXboxOne.XVC2.SerializedModel;
 
 public record FileFormat(List<string> WrittenBy, int MajorVersion, int MinorVersion, int Build) : ISerialize
 {
-    public System.Version Version => new(MajorVersion, MinorVersion);
+    public System.Version Version => Build == -1 
+            ? new System.Version(MajorVersion, MinorVersion) 
+            : new System.Version(MajorVersion, MinorVersion, Build);
 
     public override string ToString()
-        => $"{MajorVersion}.{MinorVersion}.{Build} ({WrittenBy})";
+        => $"{Version} ({string.Join(", ", WrittenBy)})";
 
     public void Serialize(CborWriter writer)
     {
