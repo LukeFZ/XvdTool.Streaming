@@ -53,7 +53,8 @@ internal sealed class ExtractCommand : CryptoCommand<ExtractCommand.Settings>
 
         using (XvdFile)
         {
-            XvdFile.ExtractFiles(outputPath, keyEntry, settings.SkipHashCheck, settings.SkipRegions, settings.FilePatterns, settings.DownloadRegions);
+            XvdFile.ExtractFiles(outputPath, keyEntry, settings.SkipHashCheck, settings.SkipRegions,
+                settings.DownloadRegions, settings.FilePatterns, settings.UnencryptedOnly);
         }
 
         ConsoleLogger.WriteInfoLine("[green bold]Successfully[/] extracted files.");
