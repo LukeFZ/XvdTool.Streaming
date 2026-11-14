@@ -140,7 +140,10 @@ public static class CborExtensions
         }
 
         public Guid ReadGuid()
-            => Guid.Parse(reader.ReadTextString());
+        {
+            var guidString = reader.ReadTextString();
+            return Guid.Parse(guidString);
+        }
 
         public T ReadEnum<T>() where T : Enum
             => (T)(object)reader.ReadInt32();

@@ -1,12 +1,11 @@
 ﻿#nullable enable
-using System;
 using System.Diagnostics;
 using System.Formats.Cbor;
 
 namespace LibXboxOne.XVC2.SerializedModel;
 
 public sealed record PackageKeySource(
-    Guid SourceKeyId,
+    string SourceKeyId,
     PackagingKeyPurpose SourcePurpose, 
     PackagingDerivationAlgorithm DerivationAlgorithm,
     byte[] KdfContext,
@@ -71,7 +70,7 @@ public sealed record PackageKeySource(
         writer.WriteEnum(ToSerialized(SourcePurpose));
 
         writer.WriteLabel(SerializedLabel.SourceKeyId);
-        writer.WriteGuid(SourceKeyId);
+        writer.WriteTextString(SourceKeyId);
 
         writer.WriteLabel(SerializedLabel.DerivationAlgorithm);
         writer.WriteEnum(ToSerialized(DerivationAlgorithm));
@@ -99,7 +98,7 @@ public sealed record PackageKeySource(
 
     public static PackageKeySource Deserialize(CborReader reader)
     {
-        Guid sourceKeyId = default;
+        string? sourceKeyId = default;
         PackagingKeyPurpose keyPurpose = default;
         PackagingDerivationAlgorithm derivationAlgorithm = default;
         PackagingEncryptionAlgorithm wrapAlgorithm = default;
@@ -118,7 +117,7 @@ public sealed record PackageKeySource(
                     keyPurpose = ToKeyPurpose(reader.ReadEnum<SerializedKeyPurpose>());
                     break;
                 case SerializedLabel.SourceKeyId:
-                    sourceKeyId = reader.ReadGuid();
+                    sourceKeyId = reader.ReadTextString();
                     break;
                 case SerializedLabel.DerivationAlgorithm:
                     derivationAlgorithm = ToDerivationAlgorithm(reader.ReadEnum<SerializedAlgorithm>());

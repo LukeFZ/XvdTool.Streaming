@@ -8,9 +8,9 @@ namespace LibXboxOne.XVC2;
 
 public partial class Msixvc2File
 {
-    private readonly Dictionary<Guid, byte[]> _storedKeyMaterial = [];
+    private readonly Dictionary<string, byte[]> _storedKeyMaterial = [];
 
-    public void SubmitKeyMaterial(Guid keyId, byte[] keyMaterial)
+    public void SubmitKeyMaterial(string keyId, byte[] keyMaterial)
     {
         _storedKeyMaterial[keyId] = keyMaterial;
     }
