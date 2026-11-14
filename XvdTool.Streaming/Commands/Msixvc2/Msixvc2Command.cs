@@ -45,7 +45,7 @@ internal abstract class Msixvc2Command<T> : Command<T> where T : Msixvc2CommandS
         }
     }
 
-    protected override ValidationResult Validate(CommandContext context, T settings)
+    public override ValidationResult Validate(CommandContext context, T settings)
     {
         if (settings.XvcPath != null && !settings.XvcPath.StartsWith("http") && !File.Exists(settings.XvcPath))
             return ValidationResult.Error("Provided file does not exist.");

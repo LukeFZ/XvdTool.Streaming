@@ -15,7 +15,7 @@ internal sealed class ExtractEmbeddedXvdCommand : XvdCommand<ExtractEmbeddedXvdC
         public string EmbeddedXvdOutputPath { get; set; } = null!;
     }
 
-    protected override int Execute(CommandContext context, Settings settings, CancellationToken cancellationToken)
+    public override int Execute(CommandContext context, Settings settings, CancellationToken cancellationToken)
     {
         Initialize(settings, requiresWriting: false);
 
@@ -33,7 +33,7 @@ internal sealed class ExtractEmbeddedXvdCommand : XvdCommand<ExtractEmbeddedXvdC
         return 0;
     }
 
-    protected override ValidationResult Validate(CommandContext context, Settings settings)
+    public override ValidationResult Validate(CommandContext context, Settings settings)
     {
         if (Directory.Exists(settings.EmbeddedXvdOutputPath))
             return ValidationResult.Error("The embedded XVD output path is a directory.");

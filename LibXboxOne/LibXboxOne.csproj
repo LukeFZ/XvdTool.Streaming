@@ -11,10 +11,10 @@
     <Folder Include="ThirdParty\" />
   </ItemGroup>
   <ItemGroup>
-    <PackageReference Include="LTRData.DiscUtils.Ntfs" Version="1.0.80" />
-    <PackageReference Include="LTRData.DiscUtils.Vhd" Version="1.0.80" />
-    <PackageReference Include="System.Formats.Cbor" Version="10.0.7" />
-    <PackageReference Include="System.IO.Packaging" Version="10.0.7" />
+    <PackageReference Include="LTRData.DiscUtils.Ntfs" Version="1.0.90" />
+    <PackageReference Include="LTRData.DiscUtils.Vhd" Version="1.0.90" />
+    <PackageReference Include="System.Formats.Cbor" Version="11.0.0" />
+    <PackageReference Include="System.IO.Packaging" Version="11.0.0" />
     <PackageReference Include="System.Data.DataSetExtensions" Version="4.6.0-preview3.19128.7" />
     <PackageReference Include="Portable.BouncyCastle" Version="1.9.0" />
   </ItemGroup>

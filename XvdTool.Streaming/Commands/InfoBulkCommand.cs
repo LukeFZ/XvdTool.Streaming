@@ -27,7 +27,7 @@ internal sealed class InfoBulkCommand : XvdCommand<InfoBulkCommand.Settings>
         public XvdFilePattern[]? Include { get; init; }
     }
 
-    protected override int Execute(CommandContext context, Settings settings, CancellationToken cancellationToken)
+    public override int Execute(CommandContext context, Settings settings, CancellationToken cancellationToken)
     {
         Debug.Assert(settings.XvcPath != null, "settings.XvcPath != null");
 

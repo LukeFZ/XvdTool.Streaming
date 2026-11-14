@@ -13,7 +13,7 @@ internal sealed class ExtractCommand : Msixvc2Command<ExtractCommand.Settings>
         public string? OutputPath { get; init; }
     }
 
-    protected override int Execute(CommandContext context, Settings settings, CancellationToken cancellationToken)
+    public override int Execute(CommandContext context, Settings settings, CancellationToken cancellationToken)
     {
         Initialize(settings);
 

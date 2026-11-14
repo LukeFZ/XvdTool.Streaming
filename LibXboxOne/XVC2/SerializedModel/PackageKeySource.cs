@@ -144,7 +144,7 @@ public sealed record PackageKeySource(
         }
         reader.ReadEndMap();
 
-        Debug.Assert(kdfContext != null && wrappedKey != null);
+        Debug.Assert(kdfContext != null && wrappedKey != null && sourceKeyId != null);
         return new PackageKeySource(sourceKeyId, keyPurpose, derivationAlgorithm, kdfContext, wrapAlgorithm,
             wrapIV, wrappedKey, algorithm);
     }

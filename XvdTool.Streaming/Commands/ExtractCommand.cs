@@ -36,7 +36,7 @@ internal sealed class ExtractCommand : CryptoCommand<ExtractCommand.Settings>
         public bool UnencryptedOnly { get; init; }
     }
 
-    protected override int Execute(CommandContext context, Settings settings, CancellationToken cancellationToken)
+    public override int Execute(CommandContext context, Settings settings, CancellationToken cancellationToken)
     {
         Debug.Assert(settings.OutputDirectory != null, "settings.OutputDirectory != null");
 
@@ -62,7 +62,7 @@ internal sealed class ExtractCommand : CryptoCommand<ExtractCommand.Settings>
         return 0;
     }
 
-    protected override ValidationResult Validate(CommandContext context, Settings settings)
+    public override ValidationResult Validate(CommandContext context, Settings settings)
     {
         if (settings is { DownloadRegions: not null, SkipRegions: not null })
             return ValidationResult.Error("'--skip-region' and '--download-region' cannot be used together.");

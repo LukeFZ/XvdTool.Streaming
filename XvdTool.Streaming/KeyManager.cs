@@ -258,7 +258,11 @@ public class KeyManager
                 _keys[keyId] = new KeyEntry(keyId, cik);
             }
         }
+#if DEBUG
         catch (Exception ex)
+#else
+        catch (Exception)
+#endif
         {
             ConsoleLogger.WriteWarnLine($"License file [white]{path}[/] was not valid XML, assuming corrupted. Skipping");
             #if DEBUG
