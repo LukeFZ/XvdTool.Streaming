@@ -12,16 +12,12 @@ internal abstract class XvdCommand<T> : Command<T> where T : XvdCommandSettings
     {
         Debug.Assert(settings.XvcPath != null, "settings.XvcPath != null");
 
-        var path = settings.XvcPath;
+        var stream = Stream.OpenFileStream(settings.XvcPath, requiresWriting);
 
-        XvdFile = path.StartsWith("http")
-            ? StreamedXvdFile.OpenFromUrl(path)
-            : StreamedXvdFile.OpenFromFile(path, requiresWriting);
-
-        XvdFile.Parse();
+        XvdFile = StreamedXvdFile.Open(stream);
     }
 
-    public override ValidationResult Validate(CommandContext context, T settings)
+    protected override ValidationResult Validate(CommandContext context, T settings)
     {
         if (settings.XvcPath != null && !settings.XvcPath.StartsWith("http") && !File.Exists(settings.XvcPath))
             return ValidationResult.Error("Provided file does not exist.");

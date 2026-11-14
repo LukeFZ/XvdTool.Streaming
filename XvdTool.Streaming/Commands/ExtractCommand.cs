@@ -30,13 +30,17 @@ internal sealed class ExtractCommand : CryptoCommand<ExtractCommand.Settings>
         [Description("Skips performing hash verification on the pages prior to decryption.\nMassively improves performance at the cost of integrity.\nOnly use this if you know the file is not corrupt!")]
         [CommandOption("-n|--no-hash-check")]
         public bool SkipHashCheck { get; init; }
+
+        [Description("Only extract unencrypted regions.")]
+        [CommandOption("-u|--unencrypted-only")]
+        public bool UnencryptedOnly { get; init; }
     }
 
-    public override int Execute(CommandContext context, Settings settings)
+    protected override int Execute(CommandContext context, Settings settings, CancellationToken cancellationToken)
     {
         Debug.Assert(settings.OutputDirectory != null, "settings.OutputDirectory != null");
 
-        if (!Initialize(settings, out var keyEntry))
+        if (!Initialize(settings, out var keyEntry) && !settings.UnencryptedOnly)
         {
             return -1;
         }
@@ -49,7 +53,8 @@ internal sealed class ExtractCommand : CryptoCommand<ExtractCommand.Settings>
 
         using (XvdFile)
         {
-            XvdFile.ExtractFiles(outputPath, keyEntry, settings.SkipHashCheck, settings.SkipRegions, settings.DownloadRegions, settings.FilePatterns);
+            XvdFile.ExtractFiles(outputPath, keyEntry, settings.SkipHashCheck, settings.SkipRegions,
+                settings.DownloadRegions, settings.FilePatterns, settings.UnencryptedOnly);
         }
 
         ConsoleLogger.WriteInfoLine("[green bold]Successfully[/] extracted files.");
@@ -57,7 +62,7 @@ internal sealed class ExtractCommand : CryptoCommand<ExtractCommand.Settings>
         return 0;
     }
 
-    public override ValidationResult Validate(CommandContext context, Settings settings)
+    protected override ValidationResult Validate(CommandContext context, Settings settings)
     {
         if (settings is { DownloadRegions: not null, SkipRegions: not null })
             return ValidationResult.Error("'--skip-region' and '--download-region' cannot be used together.");

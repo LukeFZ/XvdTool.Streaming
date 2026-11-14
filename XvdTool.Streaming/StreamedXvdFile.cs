@@ -6,6 +6,7 @@ using DiscUtils;
 using DiscUtils.Ntfs;
 using DiscUtils.Partitions;
 using LibXboxOne;
+using LibXboxOne.XVC2;
 using Spectre.Console;
 using Spectre.Console.Rendering;
 using XvdTool.Streaming.Commands;
@@ -77,20 +78,11 @@ public partial class StreamedXvdFile : IDisposable
 
         _segments = [];
         _segmentPaths = [];
+
+        Parse();
     }
 
-    public static StreamedXvdFile OpenFromUrl(string url)
-    {
-        return new StreamedXvdFile(HttpFileStream.Open(url));
-    }
-
-    public static StreamedXvdFile OpenFromFile(string filePath, bool writing = true)
-    {
-        if (!File.Exists(filePath))
-            throw new InvalidOperationException("File does not exist");
-
-        return new StreamedXvdFile(File.Open(filePath, FileMode.Open, writing ? FileAccess.ReadWrite : FileAccess.Read, FileShare.Read));
-    }
+    public static StreamedXvdFile Open(Stream stream) => new(stream);
 
     public void Parse()
     {
@@ -120,6 +112,15 @@ public partial class StreamedXvdFile : IDisposable
         _stream.Position = 0;
 
         _header = _reader.ReadStruct<XvdHeader>();
+
+        if (!_header.Magic.SequenceEqual(XvdHeader.ExpectedMagic))
+        {
+            _stream.Position = 0;
+            if (Msixvc2File.CheckMsixvc2Magic(_stream))
+                throw new InvalidDataException("Tried to load a MSIXVC2 as a regular XVC. Use the MSIXVC2 commands instead.");
+
+            throw new InvalidDataException("Invalid XVD magic");
+        }
 
         _isXvc = XvdFile.XvcContentTypes.Contains(_header.ContentType);
         _dataIntegrity = !_header.VolumeFlags.HasFlag(XvdVolumeFlags.DataIntegrityDisabled);
@@ -287,7 +288,7 @@ public partial class StreamedXvdFile : IDisposable
 
         if (partitionTable == null)
         {
-            ConsoleLogger.WriteErrLine("Failed to drive contents as either GPT or MBR.");
+            ConsoleLogger.WriteErrLine("Failed to parse drive contents as either GPT or MBR.");
             return;
         }
 
@@ -385,7 +386,8 @@ public partial class StreamedXvdFile : IDisposable
         return LocalVerifyDataHashes();
     }
 
-    public void ExtractFiles(string outputPath, in KeyEntry key, bool skipHashCheck = false, uint[]? skippedRegionList = null, uint[]? downloadRegionList = null, XvdFilePattern[]? filePatterns = null)
+    public void ExtractFiles(string outputPath, in KeyEntry key, bool skipHashCheck = false, uint[]? skippedRegionList = null,
+        uint[]? downloadRegionList = null, XvdFilePattern[]? filePatterns = null, bool unencryptedOnly = false)
     {
         if (!_hasXvcInfo)
         {
@@ -407,7 +409,7 @@ public partial class StreamedXvdFile : IDisposable
 
         AesXtsDecryptorNi cipher = null!;
 
-        if (_encrypted)
+        if (_encrypted && !unencryptedOnly)
         {
             if (!Aes.IsSupported)
             {
@@ -438,6 +440,14 @@ public partial class StreamedXvdFile : IDisposable
                 .Where(region => downloadRegionList.Contains((uint)region.Id)
                 && (region.FirstSegmentIndex != 0 || firstSegmentOffset == region.Offset))
                 .ToArray();
+        }
+        else if (unencryptedOnly)
+        {
+            extractableRegionList =
+            [
+                .. _xvcRegions.Where(x =>
+                    x.KeyId == XvcConstants.XVC_KEY_NONE && (x.FirstSegmentIndex != 0 || firstSegmentOffset == x.Offset))
+            ];
         }
         else
         {

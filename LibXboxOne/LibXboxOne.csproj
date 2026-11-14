@@ -1,7 +1,8 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
-    <TargetFramework>net9.0</TargetFramework>
+    <TargetFramework>net10.0</TargetFramework>
+    <AllowUnsafeBlocks>True</AllowUnsafeBlocks>
   </PropertyGroup>
   <ItemGroup>
     <Folder Include="NAND\" />
@@ -10,12 +11,12 @@
     <Folder Include="ThirdParty\" />
   </ItemGroup>
   <ItemGroup>
-    <PackageReference Include="System.IO.Packaging" Version="9.0.1" />
+    <PackageReference Include="LTRData.DiscUtils.Ntfs" Version="1.0.80" />
+    <PackageReference Include="LTRData.DiscUtils.Vhd" Version="1.0.80" />
+    <PackageReference Include="System.Formats.Cbor" Version="10.0.7" />
+    <PackageReference Include="System.IO.Packaging" Version="10.0.7" />
     <PackageReference Include="System.Data.DataSetExtensions" Version="4.6.0-preview3.19128.7" />
-    <PackageReference Include="Microsoft.CSharp" Version="4.7.0" />
     <PackageReference Include="Portable.BouncyCastle" Version="1.9.0" />
-    <PackageReference Include="DiscUtils.Ntfs" Version="0.16.13" />
-    <PackageReference Include="DiscUtils.Vhd" Version="0.16.13" />
   </ItemGroup>
   <ItemGroup>
     <AssemblyAttribute Include="System.Runtime.CompilerServices.InternalsVisibleTo">

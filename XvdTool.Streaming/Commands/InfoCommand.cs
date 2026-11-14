@@ -17,7 +17,7 @@ internal sealed class InfoCommand : XvdCommand<InfoCommand.Settings>
         public bool ShowAllFiles { get; set; }
     }
 
-    public override int Execute(CommandContext context, Settings settings)
+    protected override int Execute(CommandContext context, Settings settings, CancellationToken cancellationToken)
     {
         Initialize(settings, requiresWriting: false);
 

@@ -27,7 +27,7 @@ internal sealed class InfoBulkCommand : XvdCommand<InfoBulkCommand.Settings>
         public XvdFilePattern[]? Include { get; init; }
     }
 
-    public override int Execute(CommandContext context, Settings settings)
+    protected override int Execute(CommandContext context, Settings settings, CancellationToken cancellationToken)
     {
         Debug.Assert(settings.XvcPath != null, "settings.XvcPath != null");
 
@@ -47,15 +47,12 @@ internal sealed class InfoBulkCommand : XvdCommand<InfoBulkCommand.Settings>
             }
              
             var versionId = components[^2];
-            if (fileDict.Contains(versionId)) 
+            if (!fileDict.Add(versionId)) 
             {
                 continue;
             }
-             
-            fileDict.Add(versionId);
-            var xvdFile = filePath.StartsWith("http")
-                ? StreamedXvdFile.OpenFromUrl(filePath)
-                : StreamedXvdFile.OpenFromFile(filePath, false);
+
+            using var xvdFile = StreamedXvdFile.Open(Stream.OpenFileStream(filePath, false));
  
             xvdFile.Parse();
             var outStr = $"== {versionId} ==" + xvdFile.PrintInfoBulk(settings.Files, settings.Exclude, settings.Include) + "\n";
@@ -63,7 +60,7 @@ internal sealed class InfoBulkCommand : XvdCommand<InfoBulkCommand.Settings>
             
             if (!string.IsNullOrEmpty(settings.OutputPath)) 
             {
-                File.AppendAllTextAsync(settings.OutputPath, $"{filePath}:\n\n{outStr}\n");
+                File.AppendAllText(settings.OutputPath, $"{filePath}:\n\n{outStr}\n");
             }
         }
 

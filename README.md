@@ -1,7 +1,7 @@
 # XvdTool.Streaming
 
-Rewritten and optimized version of XVDTool that lets you view information and extract files from streamed (remote, by URL) XVC/XVD files.
-Also allows for very fast extraction/decryption/hash-verification of local XVC/XVD files.
+Rewritten and optimized version of XVDTool that lets you view information and extract files from streamed (remote, by URL) XVC/XVD/MSIXVC2 files.
+Also allows for very fast extraction/decryption/hash-verification of local files.
 
 Commands supported for both local and streamed types: 
 - `info`
@@ -21,6 +21,8 @@ Commands only supported by local files:
     - Validates the embedded hashes to check for any corruption.
 - `decrypt`
     - Decrypts the file contents.
+
+MSIXVC2 supports the `info` and `extract` commands as `msixvc2 info` and `msixvc2 extract` respectively.
 
 Some speed estimates on an NVMe drive:
 - File extraction from local file (Hash Check enabled): ~200MB/s

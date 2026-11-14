@@ -9,6 +9,8 @@ namespace LibXboxOne
     [StructLayout(LayoutKind.Sequential, CharSet = CharSet.Ansi, Pack = 1)]
     public struct XvdHeader
     {
+        public const string ExpectedMagic = "msft-xvd";
+
         [MarshalAs(UnmanagedType.ByValArray, SizeConst = 0x200)]
         /* 0x0 */ public byte[] Signature; // RSA signature of the hash of 0x200-0xe00
 
