@@ -21,7 +21,7 @@ public sealed partial class Msixvc2File : IDisposable
 
     private bool _loadedFileNames;
 
-    public Msixvc2File(Stream stream, bool leaveOpen = false)
+    private Msixvc2File(Stream stream, bool leaveOpen = false)
     {
         _archive = new ZipArchive(stream, ZipArchiveMode.Read, leaveOpen);
         _package = ReadPackageMetadata();
@@ -39,10 +39,17 @@ public sealed partial class Msixvc2File : IDisposable
         }
     }
 
+    public static Msixvc2File Open(Stream stream, bool leaveOpen = false)
+        => new(stream, leaveOpen);
+
     public static bool CheckMsixvc2Magic(Stream stream)
     {
+        var position = stream.Position;
+
         var header = (stackalloc byte[4]);
         stream.ReadExactly(header);
+
+        stream.Position = position;
 
         return header.SequenceEqual("PK\x03\x04"u8);
     }

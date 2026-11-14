@@ -76,6 +76,8 @@ public partial class StreamedXvdFile : IDisposable
 
         _segments = [];
         _segmentPaths = [];
+
+        Parse();
     }
 
     public static StreamedXvdFile Open(Stream stream) => new(stream);

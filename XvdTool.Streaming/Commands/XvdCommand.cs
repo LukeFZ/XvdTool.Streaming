@@ -15,8 +15,6 @@ internal abstract class XvdCommand<T> : Command<T> where T : XvdCommandSettings
         var stream = Stream.OpenFileStream(settings.XvcPath, requiresWriting);
 
         XvdFile = StreamedXvdFile.Open(stream);
-
-        XvdFile.Parse();
     }
 
     protected override ValidationResult Validate(CommandContext context, T settings)

@@ -21,8 +21,7 @@ internal abstract class Msixvc2Command<T> : Command<T> where T : Msixvc2CommandS
             throw new NotSupportedException("File is not a MSIXVC2.");
         }
 
-        stream.Position = 0;
-        Msixvc2 = new Msixvc2File(stream);
+        Msixvc2 = Msixvc2File.Open(stream);
 
         var contentKey = settings.ContentKey != null ? Convert.FromBase64String(settings.ContentKey) : null;
         var versionKey = settings.VersionKey != null ? Convert.FromBase64String(settings.VersionKey) : null;
