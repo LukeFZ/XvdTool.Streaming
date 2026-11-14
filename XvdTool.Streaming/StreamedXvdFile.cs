@@ -5,6 +5,7 @@ using DiscUtils;
 using DiscUtils.Ntfs;
 using DiscUtils.Partitions;
 using LibXboxOne;
+using LibXboxOne.XVC2;
 using Spectre.Console;
 using Spectre.Console.Rendering;
 using XvdTool.Streaming.Crypto;
@@ -118,6 +119,15 @@ public partial class StreamedXvdFile : IDisposable
         _stream.Position = 0;
 
         _header = _reader.ReadStruct<XvdHeader>();
+
+        if (!_header.Magic.SequenceEqual(XvdHeader.ExpectedMagic))
+        {
+            _stream.Position = 0;
+            if (Msixvc2File.CheckMsixvc2Magic(_stream))
+                throw new InvalidDataException("Tried to load a MSIXVC2 as a regular XVC. Use the MSIXVC2 commands instead.");
+
+            throw new InvalidDataException("Invalid XVD magic");
+        }
 
         _isXvc = XvdFile.XvcContentTypes.Contains(_header.ContentType);
         _dataIntegrity = !_header.VolumeFlags.HasFlag(XvdVolumeFlags.DataIntegrityDisabled);

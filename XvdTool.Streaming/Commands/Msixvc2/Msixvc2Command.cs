@@ -1,4 +1,5 @@
 ﻿using System.Diagnostics;
+using LibXboxOne;
 using LibXboxOne.XVC2;
 using Spectre.Console;
 using Spectre.Console.Cli;
@@ -14,26 +15,19 @@ internal abstract class Msixvc2Command<T> : Command<T> where T : Msixvc2CommandS
             ? HttpFileStream.Open(path) 
             : File.OpenRead(path);
 
-    private static bool CheckIfMsixvc2(string path)
-    {
-        using var stream = OpenStream(path);
-        var header = (stackalloc byte[4]);
-        stream.ReadExactly(header);
-
-        return header.SequenceEqual("PK\x03\x04"u8);
-    }
-
     protected void Initialize(Msixvc2CommandSettings settings)
     {
         Debug.Assert(settings.XvcPath != null);
 
-        var path = settings.XvcPath;
-        if (!CheckIfMsixvc2(path))
+        using var stream = OpenStream(settings.XvcPath);
+
+        if (!Msixvc2File.CheckMsixvc2Magic(stream))
         {
             throw new NotSupportedException("File is not a MSIXVC2.");
         }
 
-        Msixvc2 = new Msixvc2File(OpenStream(path));
+        stream.Position = 0;
+        Msixvc2 = new Msixvc2File(stream);
 
         var contentKey = settings.ContentKey != null ? Convert.FromBase64String(settings.ContentKey) : null;
         var versionKey = settings.VersionKey != null ? Convert.FromBase64String(settings.VersionKey) : null;

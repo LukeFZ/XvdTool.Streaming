@@ -5,7 +5,6 @@ using System.IO;
 using System.IO.Compression;
 using System.Runtime.InteropServices;
 using LibXboxOne.XVC2.SerializedModel;
-using File = System.IO.File;
 
 namespace LibXboxOne.XVC2;
 
@@ -17,12 +16,10 @@ public sealed partial class Msixvc2File : IDisposable
     private readonly Dictionary<int, Chunk> _chunks = [];
     private readonly Dictionary<int, ChunkDetails> _chunkDetails = [];
     private readonly Dictionary<int, ChunkDetailsSecret> _chunkSecrets = [];
-    private readonly Dictionary<string, XVC2.SerializedModel.File> _files = [];
+    private readonly Dictionary<string, SerializedModel.File> _files = [];
     private readonly Dictionary<BoxIndex, Box> _boxes = [];
 
     private bool _loadedFileNames;
-
-    public static Msixvc2File FromPath(string path) => new(File.OpenRead(path));
 
     public Msixvc2File(Stream stream, bool leaveOpen = false)
     {
@@ -40,6 +37,14 @@ public sealed partial class Msixvc2File : IDisposable
             var boxIndex = new BoxIndex(i);
             _boxes[boxIndex] = ReadBoxManifest(boxIndex);
         }
+    }
+
+    public static bool CheckMsixvc2Magic(Stream stream)
+    {
+        var header = (stackalloc byte[4]);
+        stream.ReadExactly(header);
+
+        return header.SequenceEqual("PK\x03\x04"u8);
     }
 
     public void LoadFileNames()
