@@ -34,10 +34,10 @@ public partial class Msixvc2File
         sb.AppendLine("Segmentation:");
         sb.AppendLine($"  Algorithm: {_package.Segmentation.Algorithm}");
         sb.AppendLine($"  Hash algorithm: 0x{_package.Segmentation.HashAlgorithm:x}");
-        sb.AppendLine("Options:");
+        sb.AppendLine("  Options:");
         foreach (var (key, value) in _package.Segmentation.Options)
         {
-            sb.AppendLine($"  {key}: {value}");
+            sb.AppendLine($"    {key}: {value}");
         }
         sb.AppendLine();
 
