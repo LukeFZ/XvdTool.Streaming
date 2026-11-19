@@ -16,7 +16,7 @@ internal sealed class DecryptCommand : CryptoCommand<DecryptCommand.Settings>
 
     public override int Execute(CommandContext context, Settings settings, CancellationToken cancellationToken)
     {
-        if (!Initialize(settings, out var keyEntry))
+        if (!Initialize(settings, true, out var keyEntry))
         {
             return -1;
         }

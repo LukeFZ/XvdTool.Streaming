@@ -8,9 +8,9 @@ internal abstract class CryptoCommand<T> : XvdCommand<T> where T : CryptoCommand
 {
     protected KeyManager KeyManager = default!;
 
-    protected bool Initialize(CryptoCommandSettings settings, out KeyEntry entry)
+    protected bool Initialize(CryptoCommandSettings settings, bool requiresWriting, out KeyEntry entry)
     {
-        Initialize(settings, requiresWriting: true);
+        Initialize(settings, requiresWriting);
 
         Debug.Assert(XvdFile != null, "XvdFile != null");
 

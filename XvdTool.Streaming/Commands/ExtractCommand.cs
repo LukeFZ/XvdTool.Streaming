@@ -40,7 +40,7 @@ internal sealed class ExtractCommand : CryptoCommand<ExtractCommand.Settings>
     {
         Debug.Assert(settings.OutputDirectory != null, "settings.OutputDirectory != null");
 
-        if (!Initialize(settings, out var keyEntry) && !settings.UnencryptedOnly)
+        if (!Initialize(settings, false, out var keyEntry) && !settings.UnencryptedOnly)
         {
             return -1;
         }
